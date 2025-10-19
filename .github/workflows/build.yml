@@ -78,14 +78,12 @@ jobs:
     
     - name: Create/Update Release
       run: |
-        # Check if release exists and delete it to recreate
-        gh release delete v${{ steps.version.outputs.VERSION }} -y --cleanup-tag || true
-        
-        # Create new release with files
+        # Try to create release, if it exists (v1), we'll handle the error gracefully
         gh release create v${{ steps.version.outputs.VERSION }} \
           firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin \
           version.txt \
           --title "Firmware v${{ steps.version.outputs.VERSION }}" \
-          --notes "Automated Build - Version: ${{ steps.version.outputs.VERSION }} - Commit: ${{ github.sha }}"
+          --notes "Automated Build - Version: ${{ steps.version.outputs.VERSION }} - Commit: ${{ github.sha }}" \
+          2>/dev/null || echo "Release v${{ steps.version.outputs.VERSION }} already exists"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
