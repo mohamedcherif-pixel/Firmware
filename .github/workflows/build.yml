@@ -38,6 +38,8 @@ jobs:
       run: |
         cd ESP32_Encrypted_Firmware
         arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
+        echo "=== Build output ==="
+        find ./build -name "*.bin" -type f
     
     - name: Get version
       id: version
@@ -45,10 +47,21 @@ jobs:
         VERSION=$(grep -oP '#define FIRMWARE_VERSION \K[0-9]+' ESP32_Encrypted_Firmware/ESP32_Encrypted_Firmware.ino || echo "1")
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
     
+    - name: Find compiled binary
+      id: binary
+      run: |
+        BINARY_PATH=$(find ESP32_Encrypted_Firmware/build -name "ESP32_Encrypted_Firmware.ino.bin" -type f | head -1)
+        if [ -z "$BINARY_PATH" ]; then
+          echo "Error: Could not find compiled binary"
+          exit 1
+        fi
+        echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_OUTPUT
+        echo "Found binary at: $BINARY_PATH"
+    
     - name: Encrypt firmware
       run: |
         python tools/encrypt_firmware.py encrypt \
-          -i ESP32_Encrypted_Firmware/build/esp32.esp32.esp32/ESP32_Encrypted_Firmware.ino.bin \
+          -i ${{ steps.binary.outputs.BINARY_PATH }} \
           -o firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
     
     - name: Create version file
