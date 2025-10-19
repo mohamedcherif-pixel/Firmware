@@ -83,7 +83,7 @@ jobs:
           firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
           version.txt
         tag_name: v${{ steps.version.outputs.VERSION }}
-        release_name: Firmware v${{ steps.version.outputs.VERSION }}
+        name: Firmware v${{ steps.version.outputs.VERSION }}
         body: |
           ## Automated Build
           - Version: ${{ steps.version.outputs.VERSION }}
@@ -91,6 +91,5 @@ jobs:
           - Commit: ${{ github.sha }}
         draft: false
         prerelease: false
-        overwrite: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
