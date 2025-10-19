@@ -86,9 +86,6 @@ jobs:
           firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin \
           version.txt \
           --title "Firmware v${{ steps.version.outputs.VERSION }}" \
-          --notes "## Automated Build
-- Version: ${{ steps.version.outputs.VERSION }}
-- Built: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-- Commit: ${{ github.sha }}"
+          --notes "Automated Build - Version: ${{ steps.version.outputs.VERSION }} - Commit: ${{ github.sha }}"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
