@@ -84,6 +84,7 @@ jobs:
           version.txt
         tag_name: v${{ steps.version.outputs.VERSION }}
         name: Firmware v${{ steps.version.outputs.VERSION }}
+        target_commitish: ${{ github.sha }}
         body: |
           ## Automated Build
           - Version: ${{ steps.version.outputs.VERSION }}
