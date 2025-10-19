@@ -1,0 +1,23 @@
+# Custom Partition Configuration for ESP32 Encrypted Firmware
+# 
+# INSTALLATION INSTRUCTIONS:
+# 
+# Windows:
+# Copy this file to: C:\Users\<YourUsername>\AppData\Local\Arduino15\packages\esp32\hardware\esp32\<version>\
+# 
+# Or add these lines to the existing boards.txt file
+#
+# Then restart Arduino IDE and select:
+# Tools → Board → ESP32 Dev Module
+# Tools → Partition Scheme → Custom OTA (Encrypted)
+
+##############################################################
+# Custom partition scheme for encrypted OTA updates
+##############################################################
+
+esp32.menu.PartitionScheme.custom_ota=Custom OTA (Encrypted)
+esp32.menu.PartitionScheme.custom_ota.build.partitions=custom_partitions
+esp32.menu.PartitionScheme.custom_ota.upload.maximum_size=1048576
+
+# Note: Place the partitions.csv file in the same directory as boards.txt
+# and rename it to custom_partitions.csv
