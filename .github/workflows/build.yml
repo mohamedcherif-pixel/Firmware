@@ -77,20 +77,18 @@ jobs:
           version.txt
     
     - name: Create/Update Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
-          version.txt
-        tag_name: v${{ steps.version.outputs.VERSION }}
-        name: Firmware v${{ steps.version.outputs.VERSION }}
-        target_commitish: ${{ github.sha }}
-        body: |
-          ## Automated Build
-          - Version: ${{ steps.version.outputs.VERSION }}
-          - Built: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          - Commit: ${{ github.sha }}
-        draft: false
-        prerelease: false
+      run: |
+        # Check if release exists and delete it to recreate
+        gh release delete v${{ steps.version.outputs.VERSION }} -y --cleanup-tag || true
+        
+        # Create new release with files
+        gh release create v${{ steps.version.outputs.VERSION }} \
+          firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin \
+          version.txt \
+          --title "Firmware v${{ steps.version.outputs.VERSION }}" \
+          --notes "## Automated Build
+- Version: ${{ steps.version.outputs.VERSION }}
+- Built: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+- Commit: ${{ github.sha }}"
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
