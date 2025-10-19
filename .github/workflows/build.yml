@@ -48,7 +48,7 @@ jobs:
     - name: Encrypt firmware
       run: |
         python tools/encrypt_firmware.py encrypt \
-          -i ESP32_Encrypted_Firmware/build/ESP32_Encrypted_Firmware.ino.esp32.bin \
+          -i ESP32_Encrypted_Firmware/build/esp32.esp32.esp32/ESP32_Encrypted_Firmware.ino.bin \
           -o firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
     
     - name: Create version file
