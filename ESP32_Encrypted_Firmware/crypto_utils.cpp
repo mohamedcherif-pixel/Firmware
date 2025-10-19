@@ -140,28 +140,13 @@ bool sha256_hash(const uint8_t* data, size_t data_len, uint8_t* hash) {
     mbedtls_sha256_context sha256_ctx;
     mbedtls_sha256_init(&sha256_ctx);
     
-    int ret = mbedtls_sha256_starts(&sha256_ctx, 0); // 0 = SHA-256 (not SHA-224)
-    if (ret != 0) {
-        Serial.printf("[CRYPTO] SHA256 start failed: %d\n", ret);
-        mbedtls_sha256_free(&sha256_ctx);
-        return false;
-    }
-
-    ret = mbedtls_sha256_update(&sha256_ctx, data, data_len);
-    if (ret != 0) {
-        Serial.printf("[CRYPTO] SHA256 update failed: %d\n", ret);
-        mbedtls_sha256_free(&sha256_ctx);
-        return false;
-    }
-
-    ret = mbedtls_sha256_finish(&sha256_ctx, hash);
+    // mbedTLS SHA256 functions return void in ESP32, not int
+    mbedtls_sha256_starts(&sha256_ctx, 0); // 0 = SHA-256 (not SHA-224)
+    mbedtls_sha256_update(&sha256_ctx, data, data_len);
+    mbedtls_sha256_finish(&sha256_ctx, hash);
     mbedtls_sha256_free(&sha256_ctx);
 
-    if (ret != 0) {
-        Serial.printf("[CRYPTO] SHA256 finish failed: %d\n", ret);
-        return false;
-    }
-
+    Serial.printf("[CRYPTO] SHA256 hash computed: %d bytes hashed\n", data_len);
     return true;
 }
 
