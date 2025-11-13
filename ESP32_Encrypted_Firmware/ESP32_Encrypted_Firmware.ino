@@ -69,7 +69,16 @@ int check_server_version() {
     if (httpCode == HTTP_CODE_OK) {
         String payload = http.getString();
         Serial.printf("[VERSION] Response: %s\n", payload.c_str());
+        
+        // Clean up the version string - remove any 'v' prefix and whitespace
+        payload.trim();
+        if (payload.startsWith("v") || payload.startsWith("V")) {
+            payload = payload.substring(1);
+        }
+        
         int server_version = payload.toInt();
+        Serial.printf("[VERSION] Parsed version: %d\n", server_version);
+        
         http.end();
         return server_version;
     } else {

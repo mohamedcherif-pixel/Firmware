@@ -69,7 +69,7 @@ jobs:
       run: |
         cd tools
         python encrypt_firmware.py encrypt -i ../${{ env.BINARY_PATH }} -o firmware_encrypted.bin -k aes_key.bin
-        echo "v${{ env.VERSION }}" > version.txt
+        echo "${{ env.VERSION }}" > version.txt
         echo "Firmware encrypted successfully"
         
     - name: Install GitHub CLI
