@@ -8,6 +8,10 @@ on:
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
+# Required permissions for creating releases
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -68,33 +72,27 @@ jobs:
         echo "v${{ env.VERSION }}" > version.txt
         echo "Firmware encrypted successfully"
         
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ env.VERSION }}
-        release_name: Firmware v${{ env.VERSION }}
-        draft: false
-        prerelease: false
+    - name: Install GitHub CLI
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install gh
         
-    - name: Upload Encrypted Firmware
-      uses: actions/upload-release-asset@v1
+    - name: Create Release and Upload Assets
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./tools/firmware_encrypted.bin
-        asset_name: firmware_encrypted.bin
-        asset_content_type: application/octet-stream
+      run: |
+        # Try to delete the tag if it exists (to handle re-runs)
+        git tag -d v${{ env.VERSION }} 2>/dev/null || true
+        git push --delete origin v${{ env.VERSION }} 2>/dev/null || true
         
-    - name: Upload Version File
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./tools/version.txt
-        asset_name: version.txt
-        asset_content_type: text/plain
+        # Create a new tag
+        git tag v${{ env.VERSION }}
+        
+        # Create a new release with assets
+        gh release create v${{ env.VERSION }} \
+          --title "Firmware v${{ env.VERSION }}" \
+          --notes "Automated firmware build - Version ${{ env.VERSION }}" \
+          ./tools/firmware_encrypted.bin#firmware_encrypted.bin \
+          ./tools/version.txt#version.txt
