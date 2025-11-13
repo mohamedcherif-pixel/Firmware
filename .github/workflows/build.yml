@@ -46,6 +46,8 @@ jobs:
       run: |
         VERSION=$(grep -oP '#define FIRMWARE_VERSION \K[0-9]+' ESP32_Encrypted_Firmware/ESP32_Encrypted_Firmware.ino || echo "1")
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Version detected: $VERSION"
     
     - name: Find compiled binary
       id: binary
@@ -56,34 +58,43 @@ jobs:
           exit 1
         fi
         echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_OUTPUT
-        echo "Found binary at: $BINARY_PATH"
-    
+        echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
+        echo "Binary found at: $BINARY_PATH"
+        
     - name: Encrypt firmware
       run: |
-        python tools/encrypt_firmware.py encrypt \
-          -i ${{ steps.binary.outputs.BINARY_PATH }} \
-          -o firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
-    
-    - name: Create version file
-      run: |
-        echo "${{ steps.version.outputs.VERSION }}" > version.txt
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: firmware-v${{ steps.version.outputs.VERSION }}
-        path: |
-          firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin
-          version.txt
-    
-    - name: Create/Update Release
-      run: |
-        # Try to create release, if it exists (v1), we'll handle the error gracefully
-        gh release create v${{ steps.version.outputs.VERSION }} \
-          firmware_encrypted_v${{ steps.version.outputs.VERSION }}.bin \
-          version.txt \
-          --title "Firmware v${{ steps.version.outputs.VERSION }}" \
-          --notes "Automated Build - Version: ${{ steps.version.outputs.VERSION }} - Commit: ${{ github.sha }}" \
-          2>/dev/null || echo "Release v${{ steps.version.outputs.VERSION }} already exists"
+        cd tools
+        python encrypt_firmware.py encrypt -i ../${{ env.BINARY_PATH }} -o firmware_encrypted.bin -k aes_key.bin
+        echo "v${{ env.VERSION }}" > version.txt
+        echo "Firmware encrypted successfully"
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.VERSION }}
+        release_name: Firmware v${{ env.VERSION }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload Encrypted Firmware
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./tools/firmware_encrypted.bin
+        asset_name: firmware_encrypted.bin
+        asset_content_type: application/octet-stream
+        
+    - name: Upload Version File
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./tools/version.txt
+        asset_name: version.txt
+        asset_content_type: text/plain

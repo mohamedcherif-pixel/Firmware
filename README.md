@@ -1,301 +1,167 @@
 # ESP32 Encrypted Firmware Update System
-## Project 03: Mise à jour d'un objet avec un firmware crypté
 
-A complete implementation of secure firmware updates for ESP32 using AES-256 encryption and OTA (Over-The-Air) updates.
+A secure over-the-air (OTA) firmware update system for ESP32 devices using AES-256-CBC encryption and GitHub Releases for distribution.
 
-## Features
+## 🔒 Key Features
 
-- **AES-256-CBC Encryption**: Strong encryption for firmware binaries
-- **Secure OTA Updates**: Over-the-air firmware updates with encryption
-- **SHA-256 Verification**: Firmware integrity checking
-- **Dual Partition Support**: Safe rollback capability
-- **WiFi Integration**: Network-based firmware delivery
-- **Hardware AES Acceleration**: Utilizes ESP32's hardware crypto engine
+- **Secure Firmware Updates**: AES-256-CBC encryption protects firmware during transmission
+- **Automated Deployment**: GitHub Actions CI/CD pipeline for build and release
+- **Cloud Distribution**: Firmware hosted on GitHub Releases
+- **Periodic Updates**: ESP32 automatically checks for and applies updates
+- **Integrity Verification**: Ensures firmware hasn't been tampered with
+- **Rollback Protection**: Prevents installation of invalid firmware
 
-## Project Structure
+## 📋 Project Structure
 
 ```
-esp32cryptcode/
-├── main/
-│   ├── main.c              # Main application entry point
-│   ├── crypto_utils.c/h    # AES encryption/decryption utilities
-│   ├── ota_update.c/h      # OTA update implementation
-│   └── wifi_manager.c/h    # WiFi connection management
-├── tools/
-│   ├── encrypt_firmware.py # Firmware encryption tool
-│   ├── simple_http_server.py # Local OTA server for testing
-│   └── requirements.txt    # Python dependencies
-├── CMakeLists.txt          # Build configuration
-├── partitions.csv          # Partition table with OTA support
-└── sdkconfig.defaults      # ESP-IDF configuration
+ESP32_Encrypted_Firmware/   # Arduino implementation
+├── ESP32_Encrypted_Firmware.ino  # Main sketch
+├── crypto_utils.cpp/h      # Encryption functions
+├── ota_update.cpp/h        # Update process
+└── wifi_manager.cpp/h      # WiFi connectivity
+
+.github/workflows/          # CI/CD configuration
+└── build.yml               # Automated build pipeline
+
+tools/                      # Development utilities
+├── encrypt_firmware.py     # Firmware encryption tool
+└── simple_http_server.py   # Local testing server
 ```
 
-## Prerequisites
+## 🚀 How It Works
 
-1. **ESP-IDF**: Install ESP-IDF v4.4 or later
-   - Follow: https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/
+1. **Development**: Update code and increment version number
+2. **Build**: GitHub Actions compiles firmware when changes are pushed
+3. **Encryption**: Firmware binary is encrypted with AES-256-CBC
+4. **Deployment**: Encrypted firmware is published to GitHub Releases
+5. **Update Check**: ESP32 periodically checks for newer versions
+6. **Download**: If available, ESP32 downloads encrypted firmware
+7. **Decryption**: ESP32 uses pre-shared key to decrypt firmware
+8. **Installation**: Firmware is verified and installed
+9. **Verification**: After reboot, ESP32 confirms firmware is valid
 
-2. **Python 3.7+**: For encryption tools
-   ```bash
-   pip install -r tools/requirements.txt
+## 🔧 Setup & Configuration
+
+### ESP32 Configuration
+
+```cpp
+// WiFi credentials
+const char* WIFI_SSID = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+
+// Firmware source (GitHub Releases)
+const char* OTA_FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/firmware_encrypted.bin";
+const char* VERSION_CHECK_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/version.txt";
+
+// Current firmware version - increment with each release
+#define FIRMWARE_VERSION 1
+```
+
+### GitHub Setup
+
+1. Fork or clone this repository
+2. Update the URLs in the code to point to your GitHub repository
+3. Push changes to trigger the GitHub Actions workflow
+4. ESP32 devices will update from your repository's releases
+
+## 📦 Deployment Process
+
+### Automatic Deployment (Recommended)
+
+1. Modify code in ESP32_Encrypted_Firmware directory
+2. Increment `FIRMWARE_VERSION` in ESP32_Encrypted_Firmware.ino
+3. Commit and push to GitHub
+4. GitHub Actions will automatically:
+   - Build the firmware
+   - Encrypt it with AES-256
+   - Create a new release
+   - Upload the encrypted firmware
+   - Update the version file
+
+### Manual Deployment
+
+1. Compile firmware using Arduino IDE
+2. Encrypt using the encryption tool:
    ```
+   cd tools
+   python encrypt_firmware.py encrypt -i ../ESP32_Encrypted_Firmware/build/ESP32_Encrypted_Firmware.ino.bin -o firmware_encrypted.bin -k aes_key.bin
+   ```
+3. Upload `firmware_encrypted.bin` and `version.txt` to your hosting service
 
-3. **ESP32 Development Board**: Any ESP32 board with at least 4MB flash
+## 🔍 Security Considerations
 
-## Quick Start
+- **Key Management**: The AES key is pre-shared and stored in the ESP32 firmware
+- **Encryption Strength**: AES-256-CBC provides strong protection against tampering
+- **Transport Security**: GitHub Releases uses HTTPS for secure downloads
+- **Firmware Verification**: ESP32 validates firmware after decryption
 
-### 1. Build the Project
+## 📚 Documentation
 
-```bash
-# Set up ESP-IDF environment
-. $HOME/esp/esp-idf/export.sh  # Linux/Mac
-# or
-%userprofile%\esp\esp-idf\export.bat  # Windows
+- [Detailed Investigation](DETAILED_INVESTIGATION.md): Comprehensive technical analysis
+- [Installation Guide](ESP32_Encrypted_Firmware/INSTALLATION.md): Setup instructions for Arduino IDE
+- [GitHub Hosting Setup](GITHUB_HOSTING_SETUP.md): Configuring GitHub for firmware hosting
 
-# Configure the project
-idf.py menuconfig
+## 🛠️ Development Tools
 
-# Build
-idf.py build
+- **Arduino IDE**: For ESP32 firmware development
+- **Python 3.7+**: For encryption tools
+- **GitHub Actions**: For CI/CD pipeline
 
-# Flash to ESP32
-idf.py -p COM3 flash monitor  # Replace COM3 with your port
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 📊 Technical Specifications
+
+- **Target Hardware**: ESP32 (4MB+ flash recommended)
+- **Encryption**: AES-256-CBC with 32-byte key and 16-byte IV
+- **Firmware Size**: Typically 200-500KB encrypted
+- **Update Time**: ~10-30 seconds depending on WiFi speed
+- **Memory Usage**: Optimized for ESP32's limited RAM
+- **Power Requirements**: Stable power needed during update
+
+## 🔄 Update Process Diagram
+
+```
+┌─────────┐          ┌──────────────┐          ┌─────────────────┐
+│  ESP32  │          │ GitHub       │          │ GitHub Actions  │
+│  Device │          │ Releases     │          │ (CI/CD)         │
+└────┬────┘          └───────┬──────┘          └────────┬────────┘
+     │                       │                          │
+     │                       │                          │ 1. Build firmware
+     │                       │                          │
+     │                       │                          │ 2. Encrypt firmware
+     │                       │                          │
+     │                       │ 3. Upload encrypted      │
+     │                       │    firmware & version    │
+     │                       │ ◄────────────────────────┘
+     │                       │
+     │ 4. Check version.txt  │
+     │ ─────────────────────►│
+     │                       │
+     │ 5. If newer version:  │
+     │    Download firmware  │
+     │ ─────────────────────►│
+     │                       │
+     │ 6. Decrypt & install  │
+     │                       │
+     │ 7. Reboot with new    │
+     │    firmware           │
+     │                       │
 ```
 
-### 2. Test Crypto Functions
+## 🤝 Contributing
 
-The firmware includes built-in crypto tests that run on startup:
-- AES-256 encryption/decryption
-- SHA-256 hashing
-- Data integrity verification
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### 3. Encrypt Firmware for OTA Update
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-```bash
-# Navigate to tools directory
-cd tools
+## 📞 Contact
 
-# Encrypt the firmware binary
-python encrypt_firmware.py encrypt \
-    -i ../build/esp32_encrypted_firmware.bin \
-    -o ../build/firmware_encrypted.bin
+Mohamed Cherif - [@mohamedcherif-pixel](https://github.com/mohamedcherif-pixel)
 
-# This generates:
-# - firmware_encrypted.bin (encrypted firmware)
-# - aes_key.bin (encryption key - keep secure!)
-# - firmware_encrypted.bin.meta (metadata)
-# - encryption_key.h (C header for development)
-```
-
-### 4. Perform OTA Update
-
-#### Option A: Local Testing
-
-1. Start the HTTP server:
-```bash
-cd tools
-python simple_http_server.py
-```
-
-2. Update WiFi credentials in `main/main.c`:
-```c
-#define WIFI_SSID "YOUR_WIFI_SSID"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
-```
-
-3. Update OTA URL in `main/main.c`:
-```c
-#define OTA_FIRMWARE_URL "http://192.168.1.100:8000/firmware_encrypted.bin"
-```
-
-4. Uncomment the WiFi initialization code in `app_main()`
-
-5. Rebuild and flash:
-```bash
-idf.py build flash monitor
-```
-
-#### Option B: Production Deployment
-
-1. Host encrypted firmware on your server
-2. Configure ESP32 with server URL
-3. Trigger OTA update via:
-   - Scheduled updates
-   - Remote command
-   - User button press
-
-## Security Features
-
-### 1. Encryption
-- **Algorithm**: AES-256-CBC
-- **Key Size**: 256 bits (32 bytes)
-- **IV**: Random 16-byte initialization vector
-- **Padding**: PKCS7
-
-### 2. Secure Boot (Optional)
-Enable in `sdkconfig.defaults`:
-```
-CONFIG_SECURE_BOOT=y
-CONFIG_SECURE_BOOT_V2_ENABLED=y
-```
-
-### 3. Flash Encryption (Optional)
-Enable in `sdkconfig.defaults`:
-```
-CONFIG_SECURE_FLASH_ENC_ENABLED=y
-```
-
-### 4. Anti-Rollback
-Prevents downgrade to older firmware versions:
-```
-CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK=y
-```
-
-## API Reference
-
-### Crypto Utilities
-
-```c
-// Initialize crypto subsystem
-esp_err_t crypto_init(void);
-
-// Encrypt data with AES-256-CBC
-esp_err_t aes_encrypt(const uint8_t *plaintext, size_t plaintext_len,
-                      const uint8_t *key, const uint8_t *iv,
-                      uint8_t *ciphertext, size_t *ciphertext_len);
-
-// Decrypt data with AES-256-CBC
-esp_err_t aes_decrypt(const uint8_t *ciphertext, size_t ciphertext_len,
-                      const uint8_t *key, const uint8_t *iv,
-                      uint8_t *plaintext, size_t *plaintext_len);
-
-// Generate SHA-256 hash
-esp_err_t sha256_hash(const uint8_t *data, size_t data_len, uint8_t *hash);
-```
-
-### OTA Updates
-
-```c
-// Initialize OTA subsystem
-esp_err_t ota_init(void);
-
-// Update from URL
-esp_err_t ota_update_from_url(const char *url, const uint8_t *aes_key);
-
-// Update from buffer
-esp_err_t ota_update_from_buffer(const uint8_t *encrypted_firmware, 
-                                  size_t firmware_size,
-                                  const uint8_t *aes_key,
-                                  const uint8_t *iv);
-
-// Get current version
-uint32_t ota_get_current_version(void);
-
-// Rollback to previous version
-esp_err_t ota_rollback(void);
-```
-
-## Partition Table
-
-The project uses a custom partition table with dual OTA partitions:
-
-| Name      | Type | SubType | Offset   | Size |
-|-----------|------|---------|----------|------|
-| nvs       | data | nvs     | 0x9000   | 24K  |
-| phy_init  | data | phy     | 0xf000   | 4K   |
-| factory   | app  | factory | 0x10000  | 1M   |
-| ota_0     | app  | ota_0   | 0x110000 | 1M   |
-| ota_1     | app  | ota_1   | 0x210000 | 1M   |
-| storage   | data | fat     | 0x310000 | 1M   |
-
-## Key Management Best Practices
-
-⚠️ **IMPORTANT**: The example uses hardcoded keys for demonstration only!
-
-### Production Recommendations:
-
-1. **Secure Key Storage**:
-   - Use ESP32's eFuse for key storage
-   - Implement secure element (ATECC608A, etc.)
-   - Use Hardware Security Module (HSM)
-
-2. **Key Rotation**:
-   - Implement periodic key rotation
-   - Support multiple key versions
-   - Secure key distribution mechanism
-
-3. **Key Derivation**:
-   - Use unique keys per device
-   - Implement key derivation functions (KDF)
-   - Never reuse IVs with the same key
-
-4. **Access Control**:
-   - Restrict key access to authorized personnel
-   - Implement audit logging
-   - Use multi-factor authentication
-
-## Troubleshooting
-
-### Build Errors
-
-**Error**: `mbedtls/aes.h: No such file or directory`
-- **Solution**: Ensure ESP-IDF is properly installed and sourced
-
-**Error**: `Partition table does not fit in configured flash size`
-- **Solution**: Adjust partition sizes in `partitions.csv`
-
-### Runtime Errors
-
-**Error**: `OTA update failed: ESP_ERR_OTA_VALIDATE_FAILED`
-- **Solution**: Verify encryption key matches, check firmware integrity
-
-**Error**: `WiFi connection failed`
-- **Solution**: Check SSID/password, verify WiFi is in range
-
-**Error**: `Decryption failed`
-- **Solution**: Ensure correct key and IV are used, verify firmware is not corrupted
-
-### OTA Update Issues
-
-**Issue**: Device doesn't reboot after OTA
-- **Solution**: Check partition table, verify OTA partition is valid
-
-**Issue**: Device boots to old firmware
-- **Solution**: OTA validation may have failed, check logs
-
-## Performance
-
-- **Encryption Speed**: ~10 MB/s (with hardware acceleration)
-- **OTA Update Time**: ~30-60 seconds for 1MB firmware
-- **Memory Usage**: ~50KB RAM during OTA update
-
-## Security Considerations
-
-1. **Transport Security**: Use HTTPS for OTA downloads in production
-2. **Firmware Signing**: Add RSA/ECDSA signatures for authenticity
-3. **Secure Boot**: Enable secure boot to prevent unauthorized firmware
-4. **Flash Encryption**: Encrypt flash contents to protect firmware at rest
-5. **Network Security**: Use WPA2/WPA3 for WiFi, implement certificate pinning
-
-## License
-
-This project is provided as-is for educational purposes.
-
-## References
-
-- [ESP-IDF OTA Documentation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/ota.html)
-- [ESP32 Security Features](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/security/security.html)
-- [mbedTLS Documentation](https://tls.mbed.org/)
-
-## Support
-
-For issues and questions:
-1. Check ESP-IDF documentation
-2. Review ESP32 forums
-3. Verify hardware connections
-4. Enable debug logging: `idf.py menuconfig` → Component config → Log output
-
----
-
-**Version**: 1.0  
-**Last Updated**: 2025-10-05
+Project Link: [https://github.com/mohamedcherif-pixel/Firmware](https://github.com/mohamedcherif-pixel/Firmware)

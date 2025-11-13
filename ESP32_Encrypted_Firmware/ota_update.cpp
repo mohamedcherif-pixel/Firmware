@@ -1,7 +1,3 @@
-/*
- * OTA Update Implementation
- */
-
 #include "ota_update.h"
 #include "crypto_utils.h"
 #include <Update.h>
