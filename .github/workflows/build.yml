@@ -83,16 +83,13 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Try to delete the tag if it exists (to handle re-runs)
-        git tag -d v${{ env.VERSION }} 2>/dev/null || true
-        git push --delete origin v${{ env.VERSION }} 2>/dev/null || true
-        
-        # Create a new tag
-        git tag v${{ env.VERSION }}
+        # Check if release exists and delete it if it does
+        gh release view v${{ env.VERSION }} &>/dev/null && gh release delete v${{ env.VERSION }} --yes || echo "Release doesn't exist yet"
         
         # Create a new release with assets
         gh release create v${{ env.VERSION }} \
           --title "Firmware v${{ env.VERSION }}" \
           --notes "Automated firmware build - Version ${{ env.VERSION }}" \
+          --target ${{ github.sha }} \
           ./tools/firmware_encrypted.bin#firmware_encrypted.bin \
           ./tools/version.txt#version.txt
