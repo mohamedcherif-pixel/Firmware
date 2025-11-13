@@ -129,11 +129,24 @@ bool ota_update_from_url(const char* url, const uint8_t* aes_key) {
     Serial.println(url);
 
     HTTPClient http;
+    // Ensure redirects are followed (important for GitHub releases)
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    // Increase timeout for slow connections
+    http.setTimeout(20000);
     http.begin(url);
     
     int httpCode = http.GET();
     if (httpCode != HTTP_CODE_OK) {
         Serial.printf("[OTA] HTTP GET failed: %d\n", httpCode);
+        Serial.printf("[OTA] Error: %s\n", http.errorToString(httpCode).c_str());
+        
+        // If it's a redirect, show where it's redirecting to
+        if (httpCode == HTTP_CODE_FOUND || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+            String newUrl = http.getLocation();
+            Serial.printf("[OTA] Redirect location: %s\n", newUrl.c_str());
+            Serial.println("[OTA] Try updating the URL in your code to this direct location");
+        }
+        
         http.end();
         return false;
     }

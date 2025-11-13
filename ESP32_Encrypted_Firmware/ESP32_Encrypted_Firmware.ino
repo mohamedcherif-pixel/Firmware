@@ -50,7 +50,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 3
+#define FIRMWARE_VERSION 4
 
 // (VERSION_CHECK_URL defined above with OTA_FIRMWARE_URL)
 
