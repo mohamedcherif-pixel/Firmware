@@ -299,6 +299,13 @@ bool ota_update_from_url(const char* url, const uint8_t* aes_key) {
                 Serial.printf("%02x ", decrypt_buffer[i]);
             }
             Serial.println();
+            
+            // Debug: Show the AES key being used
+            Serial.print("[OTA] Using AES key: ");
+            for (int i = 0; i < 32; i++) {
+                Serial.printf("%02x", aes_key[i]);
+            }
+            Serial.println();
         }
         
         // Write decrypted chunk

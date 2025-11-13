@@ -68,6 +68,11 @@ jobs:
     - name: Encrypt firmware
       run: |
         cd tools
+        # Create a key file with the exact same key as in the firmware
+        echo -n -e "\x30\xee\x86\xb5\x2f\xac\xf1\xfe\x3d\xf8\x74\x91\xd0\xb7\x79\xc9\x7c\x06\x68\xe9\x39\x18\xef\x04\x80\x66\x0e\x97\x2d\xb2\x40\xa2" > aes_key.bin
+        # Verify key file size
+        ls -la aes_key.bin
+        # Encrypt using this key
         python encrypt_firmware.py encrypt -i ../${{ env.BINARY_PATH }} -o firmware_encrypted.bin -k aes_key.bin
         echo "${{ env.VERSION }}" > version.txt
         echo "Firmware encrypted successfully"
