@@ -50,7 +50,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 8
+#define FIRMWARE_VERSION 9
 
 // Update check interval (milliseconds). Change here to affect the periodic check.
 // Set to 10 seconds to perform version checks more frequently for testing.
@@ -65,7 +65,10 @@ int check_server_version() {
     // Keep timeout shorter than the interval so that slow network responses don't block
     // subsequent checks. Use 5 seconds here.
     http.setTimeout(5000); // 5 second timeout
-    http.begin(VERSION_CHECK_URL);
+    
+    // Add cache-busting query parameter to prevent GitHub CDN caching
+    String url = String(VERSION_CHECK_URL) + "?t=" + String(millis());
+    http.begin(url.c_str());
     
     Serial.printf("[VERSION] Checking: %s\n", VERSION_CHECK_URL);
     unsigned long start_ms = millis();
@@ -239,7 +242,7 @@ void loop() {
         lastPrint = millis();
     }
     
-    // Check for updates every 5 minutes
+    // Check for updates at the interval defined by UPDATE_CHECK_INTERVAL_MS
     if (millis() - lastUpdateCheck >= UPDATE_CHECK_INTERVAL) {
         Serial.println("\n=== Periodic Update Check ===");
         Serial.printf("Current firmware version: %d\n", FIRMWARE_VERSION);

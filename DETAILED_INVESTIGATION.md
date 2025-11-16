@@ -395,8 +395,8 @@ const char* VERSION_CHECK_URL = "https://github.com/mohamedcherif-pixel/Firmware
 // Current firmware version
 #define FIRMWARE_VERSION 1
 
-// Update check interval (5 minutes)
-static const unsigned long UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
+// Update check interval (configurable - currently 10 seconds for testing)
+const unsigned long UPDATE_CHECK_INTERVAL_MS = 10UL * 1000UL; // 10 seconds
 ```
 
 ### 7.3 Deployment Process
