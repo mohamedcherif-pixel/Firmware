@@ -7,7 +7,7 @@
 #define WIFI_TIMEOUT_MS 20000
 #define WIFI_RETRY_DELAY_MS 500
 
-bool wifi_connect(const char* ssid, const char* password) {
+bool wifi_connect(const char* ssid, const char* password, unsigned long timeout_ms) {
     Serial.print("[WiFi] Connecting to: ");
     Serial.println(ssid);
     
@@ -16,8 +16,8 @@ bool wifi_connect(const char* ssid, const char* password) {
     
     unsigned long startAttemptTime = millis();
     
-    while (WiFi.status() != WL_CONNECTED && 
-           millis() - startAttemptTime < WIFI_TIMEOUT_MS) {
+        while (WiFi.status() != WL_CONNECTED && 
+            millis() - startAttemptTime < timeout_ms) {
         Serial.print(".");
         delay(WIFI_RETRY_DELAY_MS);
     }

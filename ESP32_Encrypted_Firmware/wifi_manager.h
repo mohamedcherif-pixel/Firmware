@@ -15,7 +15,7 @@
  * @param password WiFi password
  * @return true if connected successfully
  */
-bool wifi_connect(const char* ssid, const char* password);
+bool wifi_connect(const char* ssid, const char* password, unsigned long timeout_ms = 20000);
 
 /**
  * @brief Check if WiFi is connected

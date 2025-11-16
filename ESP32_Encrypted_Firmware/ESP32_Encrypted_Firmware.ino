@@ -52,16 +52,24 @@ const uint8_t aes_iv[16] = {
 // Current firmware version - increment with each release
 #define FIRMWARE_VERSION 7
 
+// Update check interval (milliseconds). Change here to affect the periodic check.
+// Set to 10 seconds to perform version checks more frequently for testing.
+const unsigned long UPDATE_CHECK_INTERVAL_MS = 10UL * 1000UL; // 10 seconds
+
 // (VERSION_CHECK_URL defined above with OTA_FIRMWARE_URL)
 
 // Check server for latest firmware version
 int check_server_version() {
     HTTPClient http;
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    http.setTimeout(10000); // 10 second timeout
+    // Keep timeout shorter than the interval so that slow network responses don't block
+    // subsequent checks. Use 5 seconds here.
+    http.setTimeout(5000); // 5 second timeout
     http.begin(VERSION_CHECK_URL);
     
     Serial.printf("[VERSION] Checking: %s\n", VERSION_CHECK_URL);
+    unsigned long start_ms = millis();
+    Serial.printf("[VERSION] Start check at: %lu ms\n", start_ms);
     
     int httpCode = http.GET();
     Serial.printf("[VERSION] HTTP Code: %d\n", httpCode);
@@ -78,7 +86,8 @@ int check_server_version() {
         
         int server_version = payload.toInt();
         Serial.printf("[VERSION] Parsed version: %d\n", server_version);
-        
+        unsigned long elapsed = millis() - start_ms;
+        Serial.printf("[VERSION] Check completed in %lu ms\n", elapsed);
         http.end();
         return server_version;
     } else {
@@ -208,13 +217,16 @@ void setup() {
     }
     
     Serial.println("\nSystem initialized. Running main loop...");
+    Serial.printf("[UPDATE] Periodic update check interval: %lu ms\n", UPDATE_CHECK_INTERVAL_MS);
 }
 
 void loop() {
     // Main application loop
     static unsigned long lastPrint = 0;
     static unsigned long lastUpdateCheck = 0;
-    static const unsigned long UPDATE_CHECK_INTERVAL = 10 * 1000; // Check every 5 minutes
+    // Use the global interval defined above so we only edit in one place.
+    // Keep a `static` in the loop so it persists across iterations.
+    static const unsigned long UPDATE_CHECK_INTERVAL = UPDATE_CHECK_INTERVAL_MS;
     
     // Print status every 5 seconds
     if (millis() - lastPrint >= 5000) {
@@ -231,6 +243,19 @@ void loop() {
     if (millis() - lastUpdateCheck >= UPDATE_CHECK_INTERVAL) {
         Serial.println("\n=== Periodic Update Check ===");
         Serial.printf("Current firmware version: %d\n", FIRMWARE_VERSION);
+        Serial.printf("[UPDATE] Checking now (millis=%lu)\n", millis());
+        // Ensure WiFi is connected; if not, try to reconnect and skip this check if reconnection fails
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("[WIFI] WiFi disconnected, attempting quick reconnection (3s)...");
+            // Use a short timeout to avoid blocking the periodic check for too long
+            if (!wifi_connect(WIFI_SSID, WIFI_PASSWORD, 3000UL)) {
+                Serial.println("[WIFI] Reconnection failed; skipping this update check");
+                lastUpdateCheck = millis();
+                // Skip this cycle; give time to reconnect
+            } else {
+                Serial.println("[WIFI] Reconnected successfully");
+            }
+        }
         
         int server_version = check_server_version();
         if (server_version > 0) {
@@ -254,7 +279,9 @@ void loop() {
             Serial.println("✗ Failed to check server version");
         }
         
-        lastUpdateCheck = millis();
+        unsigned long check_end_ms = millis();
+        Serial.printf("[UPDATE] Next check scheduled at: %lu (interval %lu ms)\n", check_end_ms + UPDATE_CHECK_INTERVAL, UPDATE_CHECK_INTERVAL);
+        lastUpdateCheck = check_end_ms;
     }
     
     // Add your application code here
