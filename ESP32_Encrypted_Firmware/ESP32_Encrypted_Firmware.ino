@@ -50,7 +50,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 5
+#define FIRMWARE_VERSION 6
 
 // (VERSION_CHECK_URL defined above with OTA_FIRMWARE_URL)
 
@@ -214,7 +214,7 @@ void loop() {
     // Main application loop
     static unsigned long lastPrint = 0;
     static unsigned long lastUpdateCheck = 0;
-    static const unsigned long UPDATE_CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
+    static const unsigned long UPDATE_CHECK_INTERVAL = 10 * 1000; // Check every 5 minutes
     
     // Print status every 5 seconds
     if (millis() - lastPrint >= 5000) {
