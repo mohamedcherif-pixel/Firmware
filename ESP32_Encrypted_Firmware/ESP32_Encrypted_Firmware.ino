@@ -11,8 +11,8 @@
 #include "wifi_manager.h"
 
 // WiFi credentials - UPDATE THESE!
-const char* ssid = "iPhone";  
-const char* password = "zied20244"; 
+const char* WIFI_SSID = "iPhone";  
+const char* WIFI_PASSWORD = "zied20244"; 
 
 // ============================================================================
 // GITHUB RELEASES HOSTING (Public Cloud - Always Available!)
