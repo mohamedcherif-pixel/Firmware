@@ -50,7 +50,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 10
+#define FIRMWARE_VERSION 11
 
 // Update check interval (milliseconds). Change here to affect the periodic check.
 // Set to 10 seconds to perform version checks more frequently for testing.
@@ -73,6 +73,24 @@ int check_server_version() {
     Serial.printf("[VERSION] Checking: %s\n", VERSION_CHECK_URL);
     unsigned long start_ms = millis();
     Serial.printf("[VERSION] Start check at: %lu ms\n", start_ms);
+    
+    Serial.print("[WIFI] WiFi Status: ");
+    Serial.println(WiFi.status());
+    Serial.print("[WIFI] Signal Strength (RSSI): ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    Serial.print("[WIFI] WiFi Mode: ");
+    Serial.println(WiFi.getMode());
+    Serial.print("[WIFI] WiFi Channel: ");
+    Serial.println(WiFi.channel());
+    Serial.print("[WIFI] WiFi BSSID: ");
+    Serial.println(WiFi.BSSIDstr());
+    Serial.print("[WIFI] WiFi Subnet Mask: ");
+    Serial.println(WiFi.subnetMask());
+    Serial.print("[WIFI] WiFi Gateway IP: ");
+    Serial.println(WiFi.gatewayIP());
+    Serial.print("[WIFI] WiFi DNS IP: ");
+    Serial.println(WiFi.dnsIP());
     
     int httpCode = http.GET();
     Serial.printf("[VERSION] HTTP Code: %d\n", httpCode);
@@ -215,6 +233,9 @@ void setup() {
         } else {
             Serial.println("✗ Failed to check server version");
         }
+        
+        Serial.println("\nSystem initialized. Running main loop...");
+        Serial.printf("[UPDATE] Periodic update check interval: %lu ms\n", UPDATE_CHECK_INTERVAL_MS);
     } else {
         Serial.println("✗ WiFi connection failed");
     }
