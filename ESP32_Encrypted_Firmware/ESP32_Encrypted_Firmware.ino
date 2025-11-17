@@ -11,8 +11,8 @@
 #include "wifi_manager.h"
 
 // WiFi credentials - UPDATE THESE!
-const char* WIFI_SSID = "TOPNET_2FB0";
-const char* WIFI_PASSWORD = "3m3smnb68l";
+const char* ssid = "iPhone";  
+const char* password = "zied20244"; 
 
 // ============================================================================
 // GITHUB RELEASES HOSTING (Public Cloud - Always Available!)
@@ -50,7 +50,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 9
+#define FIRMWARE_VERSION 10
 
 // Update check interval (milliseconds). Change here to affect the periodic check.
 // Set to 10 seconds to perform version checks more frequently for testing.
