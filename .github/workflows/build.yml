@@ -69,9 +69,17 @@ jobs:
       run: |
         cd tools
         
-        # Always regenerate RSA keys to ensure they match
-        echo "Generating new RSA keys for this build..."
-        python sign_firmware.py generate
+        # Generate RSA keys if they don't exist (keep same keys for all builds)
+        if [ ! -f "rsa_private.pem" ]; then
+          echo "Generating RSA keys for first time..."
+          python sign_firmware.py generate
+          echo "=== RSA PUBLIC KEY FOR ESP32 ==="
+          echo "Copy this content to rsa_public.h:"
+          cat rsa_public.h
+          echo "================================"
+        else
+          echo "Using existing RSA keys"
+        fi
         
         # Create a key file with the exact same key as in the firmware
         echo -n -e "\x30\xee\x86\xb5\x2f\xac\xf1\xfe\x3d\xf8\x74\x91\xd0\xb7\x79\xc9\x7c\x06\x68\xe9\x39\x18\xef\x04\x80\x66\x0e\x97\x2d\xb2\x40\xa2" > aes_key.bin
