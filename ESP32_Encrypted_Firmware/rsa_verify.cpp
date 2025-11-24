@@ -186,12 +186,20 @@ bool rsa_verify_firmware_from_url(const char* firmware_url, const char* signatur
     
     WiFiClient* stream = http.getStreamPtr();
     size_t downloaded = 0;
-    uint8_t buffer[4096]; // 4KB chunks
+    uint8_t* buffer = (uint8_t*)malloc(4096); // 4KB chunks on heap
+    if (!buffer) {
+        Serial.println("[RSA] Failed to allocate buffer");
+        http.end();
+        free(signature_data);
+        return false;
+    }
+    
+    bool success = false;
     
     while (http.connected() && downloaded < content_len) {
         size_t available = stream->available();
         if (available) {
-            size_t to_read = min(available, min(sizeof(buffer), content_len - downloaded));
+            size_t to_read = min((size_t)available, min((size_t)4096, content_len - downloaded));
             int read = stream->readBytes(buffer, to_read);
             if (read > 0) {
                 // Update hash with this chunk
@@ -215,6 +223,9 @@ bool rsa_verify_firmware_from_url(const char* firmware_url, const char* signatur
     mbedtls_sha256_finish(&sha256_ctx, hash);
     mbedtls_sha256_free(&sha256_ctx);
     
+    // Free buffer
+    free(buffer);
+    
     if (downloaded != content_len) {
         Serial.printf("[RSA] Download incomplete: %zu/%zu bytes\n", downloaded, content_len);
         free(signature_data);
@@ -230,9 +241,11 @@ bool rsa_verify_firmware_from_url(const char* firmware_url, const char* signatur
     
     if (ret == 0) {
         Serial.println("[RSA] ✓ Signature verification successful");
-        return true;
+        success = true;
     } else {
         Serial.printf("[RSA] ✗ Signature verification failed: -0x%04x\n", -ret);
-        return false;
+        success = false;
     }
+    
+    return success;
 }
