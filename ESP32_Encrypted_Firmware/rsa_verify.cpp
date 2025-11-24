@@ -66,10 +66,8 @@ bool rsa_verify_firmware(const uint8_t* firmware_data, size_t firmware_len,
     mbedtls_sha256_finish(&sha256_ctx, hash);
     mbedtls_sha256_free(&sha256_ctx);
     
-    // Verify signature
-    mbedtls_rsa_context* rsa = mbedtls_pk_rsa(pk_ctx);
-    int ret = mbedtls_rsa_pkcs1_verify(rsa, NULL, NULL, MBEDTLS_RSA_PUBLIC,
-                                     MBEDTLS_MD_SHA256, 32, hash, signature_data);
+    // Verify signature using PKCS#1 v1.5
+    int ret = mbedtls_pk_verify(&pk_ctx, MBEDTLS_MD_SHA256, hash, 32, signature_data, signature_len);
     
     if (ret == 0) {
         Serial.println("[RSA] ✓ Signature verification successful");

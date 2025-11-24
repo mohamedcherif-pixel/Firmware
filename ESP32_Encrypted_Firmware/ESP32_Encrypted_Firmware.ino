@@ -52,7 +52,7 @@ const uint8_t aes_iv[16] = {
 };
 
 // Current firmware version - increment with each release
-#define FIRMWARE_VERSION 11
+#define FIRMWARE_VERSION 12
 
 // Update check interval (milliseconds). Change here to affect the periodic check.
 // Set to 10 seconds to perform version checks more frequently for testing.
