@@ -145,29 +145,94 @@ bool rsa_verify_firmware_from_url(const char* firmware_url, const char* signatur
         return false;
     }
     
-    // Download firmware
-    uint8_t* firmware_data = NULL;
-    size_t firmware_len = 0;
-    if (!download_file(firmware_url, &firmware_data, &firmware_len)) {
-        Serial.println("[RSA] Failed to download firmware");
-        return false;
-    }
-    
-    // Download signature
+    // Download signature first (it's small)
     uint8_t* signature_data = NULL;
     size_t signature_len = 0;
     if (!download_file(signature_url, &signature_data, &signature_len)) {
         Serial.println("[RSA] Failed to download signature");
-        free(firmware_data);
         return false;
     }
     
-    // Verify signature
-    bool result = rsa_verify_firmware(firmware_data, firmware_len, signature_data, signature_len);
+    Serial.printf("[RSA] Signature downloaded: %zu bytes\n", signature_len);
     
-    // Cleanup
-    free(firmware_data);
+    // Stream firmware and calculate hash
+    HTTPClient http;
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http.setTimeout(30000);
+    
+    Serial.printf("[RSA] Streaming firmware: %s\n", firmware_url);
+    
+    if (!http.begin(firmware_url)) {
+        Serial.println("[RSA] Failed to begin HTTP request");
+        free(signature_data);
+        return false;
+    }
+    
+    int httpCode = http.GET();
+    if (httpCode != HTTP_CODE_OK) {
+        Serial.printf("[RSA] HTTP GET failed: %d\n", httpCode);
+        http.end();
+        free(signature_data);
+        return false;
+    }
+    
+    size_t content_len = http.getSize();
+    Serial.printf("[RSA] Firmware size: %zu bytes\n", content_len);
+    
+    // Calculate SHA-256 hash while streaming
+    mbedtls_sha256_context sha256_ctx;
+    mbedtls_sha256_init(&sha256_ctx);
+    mbedtls_sha256_starts(&sha256_ctx, 0); // 0 = SHA-256
+    
+    WiFiClient* stream = http.getStreamPtr();
+    size_t downloaded = 0;
+    uint8_t buffer[4096]; // 4KB chunks
+    
+    while (http.connected() && downloaded < content_len) {
+        size_t available = stream->available();
+        if (available) {
+            size_t to_read = min(available, min(sizeof(buffer), content_len - downloaded));
+            int read = stream->readBytes(buffer, to_read);
+            if (read > 0) {
+                // Update hash with this chunk
+                mbedtls_sha256_update(&sha256_ctx, buffer, read);
+                downloaded += read;
+                
+                // Show progress
+                if (downloaded % 50000 == 0) {
+                    Serial.printf("[RSA] Downloaded: %zu/%zu bytes (%.1f%%)\n", 
+                                downloaded, content_len, (float)downloaded / content_len * 100);
+                }
+            }
+        }
+        delay(1);
+    }
+    
+    http.end();
+    
+    // Finalize hash
+    unsigned char hash[32];
+    mbedtls_sha256_finish(&sha256_ctx, hash);
+    mbedtls_sha256_free(&sha256_ctx);
+    
+    if (downloaded != content_len) {
+        Serial.printf("[RSA] Download incomplete: %zu/%zu bytes\n", downloaded, content_len);
+        free(signature_data);
+        return false;
+    }
+    
+    Serial.println("[RSA] Firmware downloaded, verifying signature...");
+    
+    // Verify signature
+    int ret = mbedtls_pk_verify(&pk_ctx, MBEDTLS_MD_SHA256, hash, 32, signature_data, signature_len);
+    
     free(signature_data);
     
-    return result;
+    if (ret == 0) {
+        Serial.println("[RSA] ✓ Signature verification successful");
+        return true;
+    } else {
+        Serial.printf("[RSA] ✗ Signature verification failed: -0x%04x\n", -ret);
+        return false;
+    }
 }
