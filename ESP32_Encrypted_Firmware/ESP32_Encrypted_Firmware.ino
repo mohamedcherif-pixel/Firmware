@@ -9,10 +9,11 @@
 #include "crypto_utils.h"
 #include "ota_update.h"
 #include "wifi_manager.h"
+#include "rsa_verify.h"
 
 // WiFi credentials - UPDATE THESE!
-const char* WIFI_SSID = "iPhone";  
-const char* WIFI_PASSWORD = "zied20244"; 
+const char* WIFI_SSID = "TOPNET_2FB0";  
+const char* WIFI_PASSWORD = "3m3smnb68l"; 
 
 // ============================================================================
 // GITHUB RELEASES HOSTING (Public Cloud - Always Available!)
@@ -26,6 +27,7 @@ const char* WIFI_PASSWORD = "zied20244";
 //
 // Option 2: Always get latest version (RECOMMENDED)
 const char* OTA_FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/firmware_encrypted.bin";
+const char* OTA_SIGNATURE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/firmware_encrypted.bin.sig";
 const char* VERSION_CHECK_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/version.txt";
 
 // OLD Local server URLs (backup for testing):
@@ -195,6 +197,13 @@ void setup() {
     crypto_init();
     ota_init();
     
+    // Initialize RSA verification
+    if (!rsa_verify_init()) {
+        Serial.println("✗ RSA verification initialization failed");
+    } else {
+        Serial.println("✓ RSA verification initialized");
+    }
+    
     // Test crypto functions
     testCryptoFunctions();
     
@@ -217,15 +226,25 @@ void setup() {
             Serial.printf("Server firmware version: %d\n", server_version);
             
             if (server_version > FIRMWARE_VERSION) {
-                Serial.println("⚠️  New version available! Starting update...");
+                Serial.println("⚠️  New version available! Verifying signature...");
                 delay(2000);
                 
-                if (ota_update_from_url(OTA_FIRMWARE_URL, aes_key)) {
-                    Serial.println("✓ OTA update successful! Rebooting...");
-                    delay(1000);
-                    ESP.restart();
+                // Verify firmware signature before downloading
+                Serial.println("[RSA] Verifying firmware signature...");
+                if (rsa_verify_firmware_from_url(OTA_FIRMWARE_URL, OTA_SIGNATURE_URL)) {
+                    Serial.println("[RSA] ✓ Signature verification passed");
+                    Serial.println("Starting OTA update...");
+                    
+                    if (ota_update_from_url(OTA_FIRMWARE_URL, aes_key)) {
+                        Serial.println("✓ OTA update successful! Rebooting...");
+                        delay(1000);
+                        ESP.restart();
+                    } else {
+                        Serial.println("✗ OTA update failed");
+                    }
                 } else {
-                    Serial.println("✗ OTA update failed");
+                    Serial.println("[RSA] ✗ Signature verification failed - Update rejected!");
+                    Serial.println("Security: Firmware may be tampered or corrupted");
                 }
             } else {
                 Serial.println("✓ Already running latest version");
@@ -286,15 +305,25 @@ void loop() {
             Serial.printf("Server firmware version: %d\n", server_version);
             
             if (server_version > FIRMWARE_VERSION) {
-                Serial.println("⚠️  New version available! Starting update...");
+                Serial.println("⚠️  New version available! Verifying signature...");
                 delay(2000);
                 
-                if (ota_update_from_url(OTA_FIRMWARE_URL, aes_key)) {
-                    Serial.println("✓ OTA update successful! Rebooting...");
-                    delay(1000);
-                    ESP.restart();
+                // Verify firmware signature before downloading
+                Serial.println("[RSA] Verifying firmware signature...");
+                if (rsa_verify_firmware_from_url(OTA_FIRMWARE_URL, OTA_SIGNATURE_URL)) {
+                    Serial.println("[RSA] ✓ Signature verification passed");
+                    Serial.println("Starting OTA update...");
+                    
+                    if (ota_update_from_url(OTA_FIRMWARE_URL, aes_key)) {
+                        Serial.println("✓ OTA update successful! Rebooting...");
+                        delay(1000);
+                        ESP.restart();
+                    } else {
+                        Serial.println("✗ OTA update failed");
+                    }
                 } else {
-                    Serial.println("✗ OTA update failed");
+                    Serial.println("[RSA] ✗ Signature verification failed - Update rejected!");
+                    Serial.println("Security: Firmware may be tampered or corrupted");
                 }
             } else {
                 Serial.println("✓ Already running latest version");

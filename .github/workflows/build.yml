@@ -65,17 +65,31 @@ jobs:
         echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
         echo "Binary found at: $BINARY_PATH"
         
-    - name: Encrypt firmware
+    - name: Encrypt and Sign firmware
       run: |
         cd tools
+        
+        # Generate RSA keys if they don't exist
+        if [ ! -f "rsa_private.pem" ]; then
+          python sign_firmware.py generate
+        fi
+        
         # Create a key file with the exact same key as in the firmware
         echo -n -e "\x30\xee\x86\xb5\x2f\xac\xf1\xfe\x3d\xf8\x74\x91\xd0\xb7\x79\xc9\x7c\x06\x68\xe9\x39\x18\xef\x04\x80\x66\x0e\x97\x2d\xb2\x40\xa2" > aes_key.bin
         # Verify key file size
         ls -la aes_key.bin
-        # Encrypt using this key
+        
+        # Encrypt firmware
         python encrypt_firmware.py encrypt -i ../${{ env.BINARY_PATH }} -o firmware_encrypted.bin -k aes_key.bin
+        
+        # Sign the encrypted firmware
+        python sign_firmware.py sign -i firmware_encrypted.bin -o firmware_encrypted.bin.sig -k rsa_private.pem
+        
+        # Create version file
         echo "${{ env.VERSION }}" > version.txt
-        echo "Firmware encrypted successfully"
+        
+        echo "Firmware encrypted and signed successfully"
+        ls -la firmware_encrypted.bin*
         
     - name: Install GitHub CLI
       run: |
@@ -97,4 +111,5 @@ jobs:
           --notes "Automated firmware build - Version ${{ env.VERSION }}" \
           --target ${{ github.sha }} \
           ./tools/firmware_encrypted.bin#firmware_encrypted.bin \
+          ./tools/firmware_encrypted.bin.sig#firmware_encrypted.bin.sig \
           ./tools/version.txt#version.txt
