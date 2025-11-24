@@ -26,6 +26,17 @@ jobs:
       with:
         python-version: '3.9'
     
+    - name: Cache RSA keys
+      uses: actions/cache@v3
+      with:
+        path: |
+          tools/rsa_private.pem
+          tools/rsa_public.pem
+          tools/rsa_public.h
+        key: rsa-keys-v1
+        restore-keys: |
+          rsa-keys-
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -77,8 +88,10 @@ jobs:
           echo "Copy this content to rsa_public.h:"
           cat rsa_public.h
           echo "================================"
+          echo "⚠️  IMPORTANT: Copy this key to your ESP32 project!"
         else
-          echo "Using existing RSA keys"
+          echo "✓ Using cached RSA keys"
+          ls -la rsa_*.pem rsa_*.h
         fi
         
         # Create a key file with the exact same key as in the firmware
