@@ -1,0 +1,158 @@
+name: Build and Deploy User Application
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'User_Application/**'
+      - '.github/workflows/build_user_app.yml'
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'User application to build'
+        required: true
+        default: 'User_App_Blink'
+        type: choice
+        options:
+          - User_App_Blink
+          - User_App_Temperature
+          - User_App_WiFiScanner
+
+# Required permissions for creating releases
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Cache RSA keys
+      uses: actions/cache@v3
+      with:
+        path: |
+          tools/rsa_private.pem
+          tools/rsa_public.pem
+          tools/rsa_public.h
+        key: rsa-keys-v1
+        restore-keys: |
+          rsa-keys-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pycryptodome pyserial
+    
+    - name: Set up Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+    
+    - name: Install ESP32 core
+      run: |
+        arduino-cli core install esp32:esp32@2.0.0
+    
+    - name: Determine which app to build
+      id: app
+      run: |
+        # Check if this is a workflow_dispatch with input
+        if [ "${{ github.event.inputs.app_name }}" != "" ]; then
+          APP_NAME="${{ github.event.inputs.app_name }}"
+        else
+          # Auto-detect which app was modified
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+          if echo "$CHANGED_FILES" | grep -q "User_App_Temperature"; then
+            APP_NAME="User_App_Temperature"
+          elif echo "$CHANGED_FILES" | grep -q "User_App_WiFiScanner"; then
+            APP_NAME="User_App_WiFiScanner"
+          else
+            APP_NAME="User_App_Blink"
+          fi
+        fi
+        echo "APP_NAME=$APP_NAME" >> $GITHUB_OUTPUT
+        echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+        echo "Building application: $APP_NAME"
+    
+    - name: Build user application
+      run: |
+        cd User_Application/${{ env.APP_NAME }}
+        arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
+        echo "=== Build output ==="
+        find ./build -name "*.bin" -type f
+    
+    - name: Get version
+      id: version
+      run: |
+        VERSION=$(grep -oP '#define USER_APP_VERSION \K[0-9]+' User_Application/${{ env.APP_NAME }}/${{ env.APP_NAME }}.ino || echo "1")
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "User App Version detected: $VERSION"
+    
+    - name: Find compiled binary
+      id: binary
+      run: |
+        BINARY_PATH=$(find User_Application/${{ env.APP_NAME }}/build -name "*.ino.bin" -type f | head -1)
+        if [ -z "$BINARY_PATH" ]; then
+          echo "Error: Could not find compiled binary"
+          exit 1
+        fi
+        echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_OUTPUT
+        echo "BINARY_PATH=$BINARY_PATH" >> $GITHUB_ENV
+        echo "Binary found at: $BINARY_PATH"
+        
+    - name: Encrypt and Sign user application
+      run: |
+        cd tools
+        
+        # Generate RSA keys if they don't exist
+        if [ ! -f "rsa_private.pem" ]; then
+          echo "Generating RSA keys for first time..."
+          python sign_firmware.py generate
+        else
+          echo "✓ Using cached RSA keys"
+        fi
+        
+        # Create AES key file
+        echo -n -e "\x30\xee\x86\xb5\x2f\xac\xf1\xfe\x3d\xf8\x74\x91\xd0\xb7\x79\xc9\x7c\x06\x68\xe9\x39\x18\xef\x04\x80\x66\x0e\x97\x2d\xb2\x40\xa2" > aes_key.bin
+        
+        # Encrypt user application
+        python encrypt_firmware.py encrypt -i ../${{ env.BINARY_PATH }} -o user_app_encrypted.bin -k aes_key.bin
+        
+        # Sign the encrypted user application
+        python sign_firmware.py sign -i user_app_encrypted.bin -o user_app_encrypted.bin.sig -k rsa_private.pem
+        
+        # Create version file
+        echo "${{ env.VERSION }}" > user_app_version.txt
+        
+        echo "User application encrypted and signed successfully"
+        ls -la user_app_encrypted.bin*
+        
+    - name: Install GitHub CLI
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install gh
+        
+    - name: Create Release and Upload Assets
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Delete existing release if it exists
+        gh release view v${{ env.VERSION }} &>/dev/null && gh release delete v${{ env.VERSION }} --yes || echo "Release doesn't exist yet"
+        
+        # Create a new release with user app assets
+        gh release create v${{ env.VERSION }} \
+          --title "User App v${{ env.VERSION }} - ${{ env.APP_NAME }}" \
+          --notes "Encrypted user application build - Version ${{ env.VERSION }}. Application: ${{ env.APP_NAME }}. This is a pure user application that runs on ESP32 devices with the OTA Bootloader installed." \
+          --target ${{ github.sha }} \
+          ./tools/user_app_encrypted.bin#user_app_encrypted.bin \
+          ./tools/user_app_encrypted.bin.sig#user_app_encrypted.bin.sig \
+          ./tools/user_app_version.txt#user_app_version.txt

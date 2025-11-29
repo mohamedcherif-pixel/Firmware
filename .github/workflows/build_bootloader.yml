@@ -1,0 +1,80 @@
+name: Build OTA Bootloader
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'OTA_Bootloader/**'
+      - '.github/workflows/build_bootloader.yml'
+  workflow_dispatch:
+
+# Required permissions for creating releases
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+    
+    - name: Install ESP32 core
+      run: |
+        arduino-cli core install esp32:esp32@2.0.0
+    
+    - name: Build OTA Bootloader
+      run: |
+        cd OTA_Bootloader
+        arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
+        echo "=== Build output ==="
+        find ./build -name "*.bin" -type f
+    
+    - name: Get bootloader version
+      id: version
+      run: |
+        VERSION=$(grep -oP '#define BOOTLOADER_VERSION \K[0-9]+' OTA_Bootloader/OTA_Bootloader.ino || echo "1")
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "Bootloader version: $VERSION"
+    
+    - name: Find compiled binary
+      id: binary
+      run: |
+        BINARY_PATH=$(find OTA_Bootloader/build -name "*.ino.bin" -type f | head -1)
+        if [ -z "$BINARY_PATH" ]; then
+          echo "Error: Could not find compiled binary"
+          exit 1
+        fi
+        cp "$BINARY_PATH" ./ota_bootloader.bin
+        echo "Bootloader binary ready: ota_bootloader.bin"
+        ls -la ota_bootloader.bin
+        
+    - name: Install GitHub CLI
+      run: |
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install gh
+        
+    - name: Create Bootloader Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="bootloader-v${{ env.VERSION }}"
+        
+        # Delete existing release if it exists
+        gh release view $TAG &>/dev/null && gh release delete $TAG --yes || echo "Release doesn't exist yet"
+        
+        # Create a new release for bootloader
+        gh release create $TAG \
+          --title "OTA Bootloader v${{ env.VERSION }}" \
+          --notes "ESP32 OTA Bootloader - Initial flash required via USB. This bootloader handles encrypted firmware updates and loads user applications. Flash once, then update user apps via OTA!" \
+          --target ${{ github.sha }} \
+          ./ota_bootloader.bin#ota_bootloader.bin \
+          ./partitions_bootloader.csv#partitions_bootloader.csv

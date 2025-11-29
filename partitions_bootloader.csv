@@ -1,0 +1,18 @@
+# Name,   Type, SubType, Offset,  Size, Flags
+# 4MB Flash - Bootloader + User Application Partition Table
+# This layout separates OTA bootloader from user applications
+#
+# Memory Map:
+# 0x0000 - 0x0FFF  : 1st stage bootloader (4KB, built-in)
+# 0x8000 - 0x8FFF  : Partition table (4KB)
+# 0x9000 - 0xDFFF  : NVS (20KB) - WiFi credentials, settings
+# 0xE000 - 0xFFFF  : OTA data (8KB) - Boot selection
+# 0x10000 - 0x10FFFF : OTA Bootloader (1MB) - FIXED, handles updates
+# 0x110000 - 0x28FFFF : User App Primary (1.5MB) - User code runs here
+# 0x290000 - 0x40FFFF : User App Backup (1.5MB) - Rollback partition
+#
+nvs,        data, nvs,     0x9000,   0x5000,
+otadata,    data, ota,     0xe000,   0x2000,
+ota_boot,   app,  factory, 0x10000,  0x100000,
+user_app,   app,  ota_0,   0x110000, 0x180000,
+user_app_b, app,  ota_1,   0x290000, 0x180000,
