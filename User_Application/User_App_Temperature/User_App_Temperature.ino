@@ -15,5 +15,4 @@ void setup() {
     Serial.println("hello");
     delay(2000);
 }
-void loop() {
-    f}
+void loop() {}
