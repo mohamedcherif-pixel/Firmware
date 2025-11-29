@@ -71,10 +71,11 @@ jobs:
         # Delete existing release if it exists
         gh release view $TAG &>/dev/null && gh release delete $TAG --yes || echo "Release doesn't exist yet"
         
-        # Create a new release for bootloader
+        # Create a new release for bootloader (NOT marked as latest)
         gh release create $TAG \
           --title "OTA Bootloader v${{ env.VERSION }}" \
           --notes "ESP32 OTA Bootloader - Initial flash required via USB. This bootloader handles encrypted firmware updates and loads user applications. Flash once, then update user apps via OTA!" \
+          --prerelease \
           --target ${{ github.sha }} \
           ./ota_bootloader.bin#ota_bootloader.bin \
           ./partitions_bootloader.csv#partitions_bootloader.csv

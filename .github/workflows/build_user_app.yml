@@ -117,10 +117,11 @@ jobs:
         # Delete existing release if it exists
         gh release view v${{ env.VERSION }} &>/dev/null && gh release delete v${{ env.VERSION }} --yes || echo "Release doesn't exist yet"
         
-        # Create a new release
+        # Create a new release and mark it as LATEST
         gh release create v${{ env.VERSION }} \
           --title "Firmware v${{ env.VERSION }}" \
-          --notes "Encrypted firmware build - Version ${{ env.VERSION }}. Contains OTA bootloader with embedded user application. Edit userSetup() and userLoop() in OTA_Bootloader.ino to modify the user application." \
+          --notes "Encrypted firmware build - Version ${{ env.VERSION }}. Contains OTA bootloader with embedded user application. Edit userSetup() and userLoop() in user_code.h to modify your code." \
+          --latest \
           --target ${{ github.sha }} \
           ./tools/user_app_encrypted.bin#user_app_encrypted.bin \
           ./tools/user_app_encrypted.bin.sig#user_app_encrypted.bin.sig \
