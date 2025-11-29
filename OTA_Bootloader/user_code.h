@@ -15,7 +15,7 @@
  * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-#define USER_APP_VERSION 2   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
+#define USER_APP_VERSION 3   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
 
 // ==========================================================================
 // YOUR SETUP CODE - Runs once at startup
