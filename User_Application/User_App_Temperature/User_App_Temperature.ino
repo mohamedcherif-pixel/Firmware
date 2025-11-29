@@ -9,7 +9,7 @@
  */
 
 // User App Version - increment this for each release
-#define USER_APP_VERSION 2
+#define USER_APP_VERSION 3
 void setup() {
     Serial.begin(115200);
     Serial.println("hello");
