@@ -15,66 +15,71 @@
  * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-#define USER_APP_VERSION 6   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
+#define USER_APP_VERSION 7   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
 
 // ==========================================================================
 // TFT DISPLAY CONFIGURATION (ILI9488 480x320)
+// For 3.5" TFT with ILI9488 controller
 // ==========================================================================
 #include <SPI.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>  // Works for ILI9488 too
+#include <Adafruit_ILI9341.h>
 
-// Display pins
+// Hardware SPI pins for ESP32
 #define TFT_CS    15
 #define TFT_RST   4
 #define TFT_DC    2
-#define TFT_MOSI  23
-#define TFT_SCLK  18
-#define TFT_MISO  19
-#define TFT_LED   32  // Backlight (optional, can connect to 3.3V)
 
-// Touch pins (optional)
-#define TOUCH_CS  21
-#define TOUCH_IRQ 27
-
-// Create display object
+// Create display object using hardware SPI
+// Note: ILI9488 is similar to ILI9341 but 480x320
+// The Adafruit_ILI9341 library works but is limited to 320x240
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 // ==========================================================================
 // YOUR SETUP CODE - Runs once at startup
 // ==========================================================================
 void userSetup() {
-    // Initialize backlight
-    pinMode(TFT_LED, OUTPUT);
-    digitalWrite(TFT_LED, HIGH);  // Turn on backlight
+    Serial.println("Initializing TFT display...");
+    
+    // Initialize SPI with correct pins for ESP32
+    SPI.begin(18, 19, 23, 15);  // SCK, MISO, MOSI, SS
     
     // Initialize display
-    tft.begin();
+    tft.begin(40000000);  // 40MHz SPI speed
+    delay(100);
+    
     tft.setRotation(1);  // Landscape mode
+    
+    // Fill screen with black first
     tft.fillScreen(ILI9341_BLACK);
+    delay(100);
     
-    // Draw header
-    tft.fillRect(0, 0, 320, 50, ILI9341_BLUE);
+    // Draw a simple test pattern
+    Serial.println("Drawing test pattern...");
+    
+    // Red rectangle at top
+    tft.fillRect(0, 0, 320, 60, ILI9341_RED);
+    
+    // Green rectangle in middle  
+    tft.fillRect(0, 80, 320, 60, ILI9341_GREEN);
+    
+    // Blue rectangle at bottom
+    tft.fillRect(0, 160, 320, 60, ILI9341_BLUE);
+    
+    // White text
     tft.setTextColor(ILI9341_WHITE);
-    tft.setTextSize(2);
-    tft.setCursor(20, 15);
-    tft.println("ESP32 OTA System v" + String(USER_APP_VERSION));
+    tft.setTextSize(3);
+    tft.setCursor(50, 20);
+    tft.print("ESP32 OTA v");
+    tft.print(USER_APP_VERSION);
     
-    // Draw info box
-    tft.drawRect(10, 60, 300, 80, ILI9341_WHITE);
-    tft.setCursor(20, 75);
-    tft.setTextColor(ILI9341_GREEN);
-    tft.println("Status: RUNNING");
-    tft.setCursor(20, 100);
-    tft.setTextColor(ILI9341_YELLOW);
-    tft.println("OTA: Background check");
+    tft.setTextColor(ILI9341_BLACK);
+    tft.setCursor(80, 100);
+    tft.print("WORKING!");
     
-    // Draw footer
-    tft.setTextColor(ILI9341_CYAN);
-    tft.setCursor(20, 160);
-    tft.println("Edit user_code.h and push");
-    tft.setCursor(20, 185);
-    tft.println("to GitHub to update!");
+    tft.setTextColor(ILI9341_WHITE);
+    tft.setCursor(60, 180);
+    tft.print("TFT TEST OK");
     
     Serial.println("TFT Display initialized!");
 }
@@ -91,19 +96,17 @@ void userLoop() {
         lastUpdate = millis();
         counter++;
         
-        // Clear counter area
-        tft.fillRect(10, 200, 300, 30, ILI9341_BLACK);
-        
-        // Draw counter
-        tft.setTextColor(ILI9341_WHITE);
+        // Update counter on screen
+        tft.fillRect(0, 220, 320, 20, ILI9341_BLACK);
+        tft.setTextColor(ILI9341_YELLOW);
         tft.setTextSize(2);
-        tft.setCursor(20, 205);
+        tft.setCursor(20, 220);
         tft.print("Uptime: ");
         tft.print(counter);
-        tft.println(" sec");
+        tft.print(" sec");
         
         // Serial output
-        Serial.printf("[USER APP v%d] Running... %d seconds\n", USER_APP_VERSION, counter);
+        Serial.printf("[v%d] Running... %d sec\n", USER_APP_VERSION, counter);
     }
     
     delay(10);
