@@ -15,7 +15,7 @@
  * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-#define USER_APP_VERSION 5   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
+#define USER_APP_VERSION 6   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
 
 // ==========================================================================
 // TFT DISPLAY CONFIGURATION (ILI9488 480x320)
