@@ -49,6 +49,12 @@ jobs:
       run: |
         arduino-cli core install esp32:esp32@2.0.0
 
+    - name: Install Libraries
+      run: |
+        arduino-cli lib install "Adafruit GFX Library"
+        arduino-cli lib install "Adafruit ILI9341"
+        arduino-cli lib install "Adafruit BusIO"
+
     - name: Build OTA Bootloader with User Code
       run: |
         cd OTA_Bootloader
