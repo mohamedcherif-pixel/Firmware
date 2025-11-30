@@ -22,8 +22,12 @@
 #include "crypto_utils.h"
 #include "rsa_verify.h"
 
-// Include user code - THIS IS WHERE YOUR CODE LIVES!
+// Rename user's setup() and loop() to avoid conflict with bootloader's
+#define setup user_setup
+#define loop user_loop
 #include "user_code.h"
+#undef setup
+#undef loop
 
 // ============================================================================
 // CONFIGURATION - DO NOT MODIFY BELOW THIS LINE
@@ -360,7 +364,7 @@ void otaTask(void* parameter) {
 }
 
 // ============================================================================
-// SETUP
+// BOOTLOADER SETUP
 // ============================================================================
 
 void setup() {
@@ -373,7 +377,7 @@ void setup() {
     Serial.println("╚═══════════════════════════════════════════════════════════╝");
     Serial.println();
     
-    // Initialize
+    // Initialize OTA system
     crypto_init();
     rsa_verify_init();
     wifiMutex = xSemaphoreCreateMutex();
@@ -387,19 +391,19 @@ void setup() {
     // Connect WiFi
     connectWiFi();
     
-    // Start OTA task on Core 0
+    // Start OTA task on Core 0 (background)
     xTaskCreatePinnedToCore(otaTask, "OTA", 8192, NULL, 1, &otaTaskHandle, 0);
     
     Serial.println("[BOOT] Starting user application...\n");
     
-    // Run user setup
-    userSetup();
+    // Run USER's setup() function (renamed via macro)
+    user_setup();
 }
 
 // ============================================================================
-// LOOP - Runs user code
+// BOOTLOADER LOOP - Calls user's loop() (renamed via macro)
 // ============================================================================
 
 void loop() {
-    userLoop();
+    user_loop();
 }
