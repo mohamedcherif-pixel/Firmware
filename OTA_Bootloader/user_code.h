@@ -15,7 +15,7 @@
  * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-#define USER_APP_VERSION 11   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
+#define USER_APP_VERSION 12   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
 
 // ==========================================================================
 // TFT DISPLAY - ILI9488 480x320 using TFT_eSPI
