@@ -15,73 +15,48 @@
  * ╚════════════════════════════════════════════════════════════════════╝
  */
 
-#define USER_APP_VERSION 7   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
+#define USER_APP_VERSION 9   // ← INCREMENT THIS WHEN YOU UPDATE YOUR CODE!
 
 // ==========================================================================
-// TFT DISPLAY CONFIGURATION (ILI9488 480x320)
-// For 3.5" TFT with ILI9488 controller
+// TFT DISPLAY - ILI9488 480x320 using TFT_eSPI
+// User_Setup.h must be configured in the library!
 // ==========================================================================
+#include <TFT_eSPI.h>
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
 
-// Hardware SPI pins for ESP32
-#define TFT_CS    15
-#define TFT_RST   4
-#define TFT_DC    2
-
-// Create display object using hardware SPI
-// Note: ILI9488 is similar to ILI9341 but 480x320
-// The Adafruit_ILI9341 library works but is limited to 320x240
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+TFT_eSPI tft = TFT_eSPI();
 
 // ==========================================================================
 // YOUR SETUP CODE - Runs once at startup
 // ==========================================================================
 void userSetup() {
-    Serial.println("Initializing TFT display...");
+    Serial.println("=================================");
+    Serial.println("ILI9488 TFT Test v9 - TFT_eSPI");
+    Serial.println("=================================");
     
-    // Initialize SPI with correct pins for ESP32
-    SPI.begin(18, 19, 23, 15);  // SCK, MISO, MOSI, SS
+    tft.init();
+    tft.setRotation(1);  // Landscape
     
-    // Initialize display
-    tft.begin(40000000);  // 40MHz SPI speed
-    delay(100);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     
-    tft.setRotation(1);  // Landscape mode
+    // Title
+    tft.drawString("ESP32 OTA System", 20, 20, 4);
+    tft.drawString("Version " + String(USER_APP_VERSION), 20, 60, 4);
     
-    // Fill screen with black first
-    tft.fillScreen(ILI9341_BLACK);
-    delay(100);
+    // Draw shapes
+    tft.drawRect(10, 100, 200, 80, TFT_RED);
+    tft.fillCircle(300, 140, 40, TFT_BLUE);
+    tft.drawLine(0, 200, 480, 200, TFT_GREEN);
     
-    // Draw a simple test pattern
-    Serial.println("Drawing test pattern...");
-    
-    // Red rectangle at top
-    tft.fillRect(0, 0, 320, 60, ILI9341_RED);
-    
-    // Green rectangle in middle  
-    tft.fillRect(0, 80, 320, 60, ILI9341_GREEN);
-    
-    // Blue rectangle at bottom
-    tft.fillRect(0, 160, 320, 60, ILI9341_BLUE);
-    
-    // White text
-    tft.setTextColor(ILI9341_WHITE);
-    tft.setTextSize(3);
-    tft.setCursor(50, 20);
-    tft.print("ESP32 OTA v");
-    tft.print(USER_APP_VERSION);
-    
-    tft.setTextColor(ILI9341_BLACK);
-    tft.setCursor(80, 100);
-    tft.print("WORKING!");
-    
-    tft.setTextColor(ILI9341_WHITE);
-    tft.setCursor(60, 180);
-    tft.print("TFT TEST OK");
+    // Status
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.drawString("OTA: Background checking", 20, 220, 2);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString("Edit user_code.h to update!", 20, 250, 2);
     
     Serial.println("TFT Display initialized!");
+    Serial.println("=================================");
 }
 
 // ==========================================================================
@@ -91,21 +66,15 @@ void userLoop() {
     static unsigned long lastUpdate = 0;
     static int counter = 0;
     
-    // Update every second
     if (millis() - lastUpdate >= 1000) {
         lastUpdate = millis();
         counter++;
         
-        // Update counter on screen
-        tft.fillRect(0, 220, 320, 20, ILI9341_BLACK);
-        tft.setTextColor(ILI9341_YELLOW);
-        tft.setTextSize(2);
-        tft.setCursor(20, 220);
-        tft.print("Uptime: ");
-        tft.print(counter);
-        tft.print(" sec");
+        // Clear and update counter area
+        tft.fillRect(0, 280, 480, 40, TFT_BLACK);
+        tft.setTextColor(TFT_CYAN, TFT_BLACK);
+        tft.drawString("Uptime: " + String(counter) + " sec", 20, 290, 4);
         
-        // Serial output
         Serial.printf("[v%d] Running... %d sec\n", USER_APP_VERSION, counter);
     }
     

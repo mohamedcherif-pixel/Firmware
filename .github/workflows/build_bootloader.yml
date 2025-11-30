@@ -30,9 +30,21 @@ jobs:
 
     - name: Install Libraries
       run: |
-        arduino-cli lib install "Adafruit GFX Library"
-        arduino-cli lib install "Adafruit ILI9341"
-        arduino-cli lib install "Adafruit BusIO"
+        arduino-cli lib install "TFT_eSPI"
+        
+    - name: Configure TFT_eSPI for ILI9488
+      run: |
+        # Find TFT_eSPI library path
+        LIB_PATH=$(find ~/Arduino/libraries -name "TFT_eSPI" -type d 2>/dev/null | head -1)
+        if [ -z "$LIB_PATH" ]; then
+          LIB_PATH=$(find ~/.arduino15 -name "TFT_eSPI" -type d 2>/dev/null | head -1)
+        fi
+        echo "TFT_eSPI library found at: $LIB_PATH"
+        
+        # Copy our custom User_Setup.h
+        cp OTA_Bootloader/User_Setup.h "$LIB_PATH/User_Setup.h"
+        echo "Custom User_Setup.h copied!"
+        cat "$LIB_PATH/User_Setup.h"
     
     - name: Build OTA Bootloader
       run: |
