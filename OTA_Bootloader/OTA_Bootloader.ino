@@ -1,17 +1,4 @@
-/*
- * ESP32 OTA Bootloader with Background Updates
- * =============================================
- * 
- * ARCHITECTURE:
- * - Core 0: Background OTA checker (WiFi, version check, download)
- * - Core 1: User application code (from user_code.h)
- * 
- * USER INSTRUCTIONS:
- * 1. Edit user_code.h - put your code in userSetup() and userLoop()
- * 2. Change USER_APP_VERSION number
- * 3. Push to GitHub
- * 4. ESP32 automatically downloads and reboots with new code!
- */
+
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -33,8 +20,8 @@
 // CONFIGURATION - DO NOT MODIFY BELOW THIS LINE
 // ============================================================================
 
-const char* DEFAULT_WIFI_SSID = "TOPNET_2FB0";
-const char* DEFAULT_WIFI_PASSWORD = "3m3smnb68l";
+const char* DEFAULT_WIFI_SSID = "iPhone";
+const char* DEFAULT_WIFI_PASSWORD = "zied20244";
 
 const char* FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin";
 const char* FIRMWARE_SIG_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin.sig";

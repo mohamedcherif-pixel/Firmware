@@ -1,167 +1,490 @@
-# ESP32 Encrypted Firmware Update System
+# ESP32 Secure OTA System
 
-A secure over-the-air (OTA) firmware update system for ESP32 devices using AES-256-CBC encryption and GitHub Releases for distribution.
+A **next-level** secure over-the-air firmware update system for ESP32. Users write standard Arduino code (`setup()` and `loop()`) in a simple file - the bootloader handles all WiFi, OTA, encryption, and updates automatically in the background.
+
+---
+
+## 📋 Table of Contents
+
+1. [Overview](#-overview)
+2. [Key Features](#-key-features)
+3. [Architecture](#-architecture)
+4. [Project Structure](#-project-structure)
+5. [How It Works](#-how-it-works)
+6. [Security](#-security)
+7. [Initial Setup (One Time)](#-initial-setup-one-time)
+8. [Daily Usage](#-daily-usage)
+9. [File Details](#-file-details)
+10. [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🎯 Overview
+
+This project solves a common problem: **How can users deploy code to ESP32 devices without dealing with OTA complexity?**
+
+**The Solution:**
+- Users write pure Arduino code in `user_code.h`
+- Change version number, push to GitHub
+- ESP32 automatically downloads, decrypts, verifies, and installs the new code
+- Zero OTA knowledge required from the user!
+
+**Perfect for:**
+- Educational projects where students focus on application logic
+- IoT deployments with remote firmware updates
+- Projects requiring secure firmware distribution
+
+---
 
 ## 🔒 Key Features
 
-- **Secure Firmware Updates**: AES-256-CBC encryption protects firmware during transmission
-- **Automated Deployment**: GitHub Actions CI/CD pipeline for build and release
-- **Cloud Distribution**: Firmware hosted on GitHub Releases
-- **Periodic Updates**: ESP32 automatically checks for and applies updates
-- **Integrity Verification**: Ensures firmware hasn't been tampered with
-- **Rollback Protection**: Prevents installation of invalid firmware
+| Feature | Description |
+|---------|-------------|
+| **Zero OTA Code** | User writes pure Arduino - no WiFi, no HTTP, no Update library |
+| **Standard Arduino** | Use familiar `void setup()` and `void loop()` |
+| **Background Updates** | OTA runs on Core 0, user code runs on Core 1 (parallel!) |
+| **AES-256-CBC Encryption** | Firmware encrypted during transmission |
+| **RSA-2048 Signatures** | Cryptographic verification prevents tampering |
+| **GitHub CI/CD** | Automatic build, encrypt, sign, and deploy on every push |
+| **Auto-Update** | ESP32 checks for updates every 60 seconds |
+| **Dual-Core** | User application never interrupted during update checks |
 
-## 📋 Project Structure
+---
+
+## 🏗 Architecture
 
 ```
-ESP32_Encrypted_Firmware/   # Arduino implementation
-├── ESP32_Encrypted_Firmware.ino  # Main sketch
-├── crypto_utils.cpp/h      # Encryption functions
-├── ota_update.cpp/h        # Update process
-└── wifi_manager.cpp/h      # WiFi connectivity
-
-.github/workflows/          # CI/CD configuration
-└── build.yml               # Automated build pipeline
-
-tools/                      # Development utilities
-├── encrypt_firmware.py     # Firmware encryption tool
-└── simple_http_server.py   # Local testing server
+┌─────────────────────────────────────────────────────────────────┐
+│                            ESP32                                │
+├────────────────────────────┬────────────────────────────────────┤
+│         CORE 0             │            CORE 1                  │
+│    (Background OTA)        │      (User Application)            │
+│                            │                                    │
+│  ┌──────────────────────┐  │  ┌──────────────────────────────┐  │
+│  │ • Connect to WiFi    │  │  │ • Your setup() runs here     │  │
+│  │ • Check version.txt  │  │  │ • Your loop() runs here      │  │
+│  │ • Compare versions   │  │  │ • Full Arduino compatibility │  │
+│  │ • Download firmware  │  │  │ • Use any library you want   │  │
+│  │ • Verify RSA sig     │  │  │ • No OTA code needed!        │  │
+│  │ • Decrypt AES-256    │  │  │                              │  │
+│  │ • Install & reboot   │  │  │                              │  │
+│  └──────────────────────┘  │  └──────────────────────────────┘  │
+└────────────────────────────┴────────────────────────────────────┘
 ```
 
-## 🚀 How It Works
+### Update Flow
 
-1. **Development**: Update code and increment version number
-2. **Build**: GitHub Actions compiles firmware when changes are pushed
-3. **Encryption**: Firmware binary is encrypted with AES-256-CBC
-4. **Deployment**: Encrypted firmware is published to GitHub Releases
-5. **Update Check**: ESP32 periodically checks for newer versions
-6. **Download**: If available, ESP32 downloads encrypted firmware
-7. **Decryption**: ESP32 uses pre-shared key to decrypt firmware
-8. **Installation**: Firmware is verified and installed
-9. **Verification**: After reboot, ESP32 confirms firmware is valid
+```
+┌──────────┐         ┌─────────────┐         ┌──────────────────┐
+│   User   │         │   GitHub    │         │      ESP32       │
+└────┬─────┘         └──────┬──────┘         └────────┬─────────┘
+     │                      │                         │
+     │ 1. Edit user_code.h  │                         │
+     │    (change version)  │                         │
+     │                      │                         │
+     │ 2. git push          │                         │
+     │ ────────────────────>│                         │
+     │                      │                         │
+     │                      │ 3. GitHub Actions:      │
+     │                      │    • Compile firmware   │
+     │                      │    • Encrypt (AES-256)  │
+     │                      │    • Sign (RSA-2048)    │
+     │                      │    • Create release     │
+     │                      │                         │
+     │                      │ 4. Check version (60s)  │
+     │                      │ <────────────────────── │
+     │                      │                         │
+     │                      │ 5. New version found!   │
+     │                      │ ──────────────────────> │
+     │                      │                         │
+     │                      │ 6. Download .bin & .sig │
+     │                      │ ──────────────────────> │
+     │                      │                         │
+     │                      │         7. Verify signature
+     │                      │         8. Decrypt firmware
+     │                      │         9. Install to flash
+     │                      │        10. Reboot!
+     │                      │                         │
+     │                      │                    Running new code!
+```
 
-## 🔧 Setup & Configuration
+---
 
-### ESP32 Configuration
+## 📁 Project Structure
+
+```
+esp32cryptcode/
+│
+├── OTA_Bootloader/                 # Main Arduino project
+│   ├── OTA_Bootloader.ino          # Bootloader (DO NOT MODIFY)
+│   ├── user_code.h                 # ★ YOUR CODE GOES HERE ★
+│   ├── crypto_utils.cpp            # AES-256-CBC decryption
+│   ├── crypto_utils.h              # Crypto header
+│   ├── rsa_verify.cpp              # RSA-2048 signature verification
+│   ├── rsa_verify.h                # RSA header
+│   └── rsa_public.h                # RSA public key (embedded)
+│
+├── .github/workflows/              # CI/CD Automation
+│   ├── build_user_app.yml          # Builds user app → GitHub Release
+│   └── build_bootloader.yml        # Builds bootloader for USB flash
+│
+├── tools/                          # Python scripts (used by CI/CD)
+│   ├── encrypt_firmware.py         # AES-256-CBC encryption
+│   ├── sign_firmware.py            # RSA-2048 signing
+│   ├── requirements.txt            # Python dependencies
+│   ├── rsa_private.pem             # RSA private key (keep secret!)
+│   └── rsa_public.pem              # RSA public key
+│
+├── partitions_bootloader.csv       # ESP32 partition table
+├── README.md                       # This file
+└── .gitignore                      # Git ignore rules
+```
+
+---
+
+## ⚙️ How It Works
+
+### 1. User Code (`user_code.h`)
+
+The user writes standard Arduino code:
 
 ```cpp
-// WiFi credentials
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+#define USER_APP_VERSION 1   // ← Change this to trigger update!
 
-// Firmware source (GitHub Releases)
-const char* OTA_FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/firmware_encrypted.bin";
-const char* VERSION_CHECK_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/version.txt";
+void setup() {
+    Serial.begin(115200);
+    Serial.println("Hello from my app!");
+    pinMode(LED_BUILTIN, OUTPUT);
+}
 
-// Current firmware version - increment with each release
-#define FIRMWARE_VERSION 1
+void loop() {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+}
 ```
 
-### GitHub Setup
+### 2. Bootloader (`OTA_Bootloader.ino`)
 
-1. Fork or clone this repository
-2. Update the URLs in the code to point to your GitHub repository
-3. Push changes to trigger the GitHub Actions workflow
-4. ESP32 devices will update from your repository's releases
+The bootloader:
+- Initializes WiFi connection
+- Starts background OTA task on Core 0
+- Calls user's `setup()` and `loop()` on Core 1
+- Checks GitHub every 60 seconds for new versions
+- Downloads, decrypts, verifies, and installs updates automatically
 
-## 📦 Deployment Process
+### 3. GitHub Actions (`build_user_app.yml`)
 
-### Automatic Deployment (Recommended)
+When you push to GitHub:
+1. **Compile**: Arduino CLI builds the firmware
+2. **Encrypt**: AES-256-CBC encryption with random IV
+3. **Sign**: RSA-2048 digital signature
+4. **Release**: Upload to GitHub Releases as `user_app_encrypted.bin`
 
-1. Modify code in ESP32_Encrypted_Firmware directory
-2. Increment `FIRMWARE_VERSION` in ESP32_Encrypted_Firmware.ino
-3. Commit and push to GitHub
-4. GitHub Actions will automatically:
-   - Build the firmware
-   - Encrypt it with AES-256
-   - Create a new release
-   - Upload the encrypted firmware
-   - Update the version file
+### 4. ESP32 Update Process
 
-### Manual Deployment
+1. **Check**: GET `version.txt` from GitHub Releases
+2. **Compare**: Is server version > local version?
+3. **Verify**: Download signature, verify with RSA public key
+4. **Download**: Stream encrypted firmware
+5. **Decrypt**: AES-256-CBC decryption on-the-fly
+6. **Install**: Write to OTA partition
+7. **Reboot**: Boot into new firmware
 
-1. Compile firmware using Arduino IDE
-2. Encrypt using the encryption tool:
-   ```
-   cd tools
-   python encrypt_firmware.py encrypt -i ../ESP32_Encrypted_Firmware/build/ESP32_Encrypted_Firmware.ino.bin -o firmware_encrypted.bin -k aes_key.bin
-   ```
-3. Upload `firmware_encrypted.bin` and `version.txt` to your hosting service
+---
 
-## 🔍 Security Considerations
+## 🔐 Security
 
-- **Key Management**: The AES key is pre-shared and stored in the ESP32 firmware
-- **Encryption Strength**: AES-256-CBC provides strong protection against tampering
-- **Transport Security**: GitHub Releases uses HTTPS for secure downloads
-- **Firmware Verification**: ESP32 validates firmware after decryption
+### Encryption: AES-256-CBC
 
-## 📚 Documentation
+- **Algorithm**: AES (Advanced Encryption Standard)
+- **Key Size**: 256 bits (32 bytes)
+- **Mode**: CBC (Cipher Block Chaining)
+- **IV**: Random 16-byte IV prepended to each encrypted file
+- **Key Storage**: Hardcoded in bootloader (pre-shared key model)
 
-- [Detailed Investigation](DETAILED_INVESTIGATION.md): Comprehensive technical analysis
-- [Installation Guide](ESP32_Encrypted_Firmware/INSTALLATION.md): Setup instructions for Arduino IDE
-- [GitHub Hosting Setup](GITHUB_HOSTING_SETUP.md): Configuring GitHub for firmware hosting
+```
+┌──────────────────────────────────────────────────────┐
+│              Encrypted Firmware Format               │
+├──────────────────┬───────────────────────────────────┤
+│   IV (16 bytes)  │     Encrypted Data (AES-256)     │
+└──────────────────┴───────────────────────────────────┘
+```
 
-## 🛠️ Development Tools
+### Signature: RSA-2048
 
-- **Arduino IDE**: For ESP32 firmware development
-- **Python 3.7+**: For encryption tools
-- **GitHub Actions**: For CI/CD pipeline
+- **Algorithm**: RSA with SHA-256
+- **Key Size**: 2048 bits
+- **Purpose**: Verify firmware authenticity
+- **Private Key**: Stored in GitHub Actions (never on device)
+- **Public Key**: Embedded in ESP32 bootloader
 
-## 📄 License
+### HTTPS Transport
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+- All downloads use HTTPS (TLS encrypted)
+- GitHub's SSL certificates provide transport security
+
+---
+
+## 🚀 Initial Setup (One Time)
+
+### Prerequisites
+
+- Arduino IDE 2.x installed
+- ESP32 board package installed (`esp32` by Espressif)
+- GitHub account
+- Git installed
+
+### Step 1: Clone Repository
+
+```bash
+git clone https://github.com/mohamedcherif-pixel/Firmware.git
+cd Firmware
+```
+
+### Step 2: Configure WiFi
+
+Open `OTA_Bootloader/OTA_Bootloader.ino` and set your WiFi credentials:
+
+```cpp
+const char* DEFAULT_WIFI_SSID = "YOUR_WIFI_NAME";
+const char* DEFAULT_WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+```
+
+### Step 3: Configure GitHub URL
+
+In the same file, verify the GitHub URLs point to your repository:
+
+```cpp
+const char* FIRMWARE_URL = "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/user_app_encrypted.bin";
+const char* FIRMWARE_SIG_URL = "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/user_app_encrypted.bin.sig";
+const char* VERSION_URL = "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/user_app_version.txt";
+```
+
+### Step 4: Flash Bootloader via USB
+
+1. Open `OTA_Bootloader/OTA_Bootloader.ino` in Arduino IDE
+2. Select Board: `ESP32 Dev Module`
+3. Select Port: Your ESP32's COM port
+4. Click **Upload**
+
+### Step 5: Verify Serial Output
+
+Open Serial Monitor (115200 baud). You should see:
+
+```
+╔═══════════════════════════════════════════════════════════╗
+║     ESP32 OTA SYSTEM v2 + USER APP v1                     ║
+╚═══════════════════════════════════════════════════════════╝
+
+[OTA] Connecting to WiFi: YOUR_WIFI_NAME
+[OTA] Connected! IP: 192.168.1.100
+[OTA] Background checker started
+[BOOT] Starting user application...
+
+[OTA] Checking for updates...
+[OTA] Server: v1 | Local: v1
+[OTA] Already up to date
+```
+
+**Done!** Your ESP32 is now ready for OTA updates.
+
+---
+
+## 📱 Daily Usage
+
+### Updating Your Code
+
+1. **Edit** `OTA_Bootloader/user_code.h`:
+
+```cpp
+#define USER_APP_VERSION 2   // ← Increment version!
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println("Version 2 is running!");
+}
+
+void loop() {
+    Serial.println("New feature!");
+    delay(1000);
+}
+```
+
+2. **Commit and push**:
+
+```bash
+git add .
+git commit -m "Update to version 2"
+git push
+```
+
+3. **Wait for GitHub Actions** (1-2 minutes)
+
+4. **Watch ESP32 Serial Monitor**:
+
+```
+[OTA] Checking for updates...
+[OTA] Server: v2 | Local: v1
+[OTA] ★ NEW VERSION AVAILABLE: v2
+[OTA] ✓ Signature verified
+[OTA] Downloading update...
+[OTA] Progress: 25%
+[OTA] Progress: 50%
+[OTA] Progress: 75%
+[OTA] Progress: 100%
+[OTA] ✓ Update installed!
+[OTA] ★ REBOOTING in 3 seconds...
+```
+
+5. **ESP32 reboots with new code!**
+
+---
+
+## 📄 File Details
+
+### `user_code.h` - Your Application
+
+```cpp
+/*
+ * USER APPLICATION CODE
+ * =====================
+ * 
+ * Write your normal Arduino code here!
+ * Just change the version number and push to GitHub.
+ * The ESP32 will automatically download your new code.
+ */
+
+#define USER_APP_VERSION 1   // ← INCREMENT THIS TO TRIGGER UPDATE!
+
+void setup() {
+    // Your setup code - runs once at startup
+}
+
+void loop() {
+    // Your loop code - runs continuously
+}
+```
+
+**Rules:**
+- ✅ Use any Arduino library
+- ✅ Use Serial, GPIO, I2C, SPI, etc.
+- ✅ Standard Arduino functions work
+- ❌ Don't define `USER_APP_VERSION` twice
+- ❌ Don't use `setup` or `loop` as variable names
+
+### `OTA_Bootloader.ino` - The Bootloader
+
+**DO NOT MODIFY** unless you know what you're doing!
+
+Key components:
+- WiFi connection management
+- Dual-core task management
+- OTA update checking (every 60 seconds)
+- Encrypted firmware download
+- RSA signature verification
+- AES decryption
+- Firmware installation
+
+### `crypto_utils.cpp` - AES Decryption
+
+Handles AES-256-CBC decryption using ESP32's mbedTLS library:
+- `crypto_init()` - Initialize crypto system
+- `aes_decrypt_stream_init()` - Start streaming decryption
+- `aes_decrypt_stream_update()` - Decrypt chunks
+- `aes_decrypt_stream_free()` - Clean up
+
+### `rsa_verify.cpp` - RSA Verification
+
+Handles RSA-2048 signature verification:
+- `rsa_verify_init()` - Load public key
+- `rsa_verify_firmware_from_url()` - Download and verify signature
+
+---
+
+## 🔧 Troubleshooting
+
+### ESP32 Won't Connect to WiFi
+
+```
+[OTA] Connecting to WiFi: YOUR_WIFI
+[OTA] Connection failed!
+```
+
+**Solutions:**
+- Check WiFi credentials in `OTA_Bootloader.ino`
+- Ensure 2.4GHz WiFi (ESP32 doesn't support 5GHz)
+- Check WiFi signal strength
+
+### Version Not Detected
+
+```
+[OTA] Server: v-1 | Local: v5
+```
+
+**Solutions:**
+- Wait for GitHub Actions to complete
+- Check GitHub Releases page for new release
+- Verify release is marked as "Latest"
+
+### Signature Verification Failed
+
+```
+[OTA] ✗ Signature invalid!
+```
+
+**Solutions:**
+- Ensure RSA keys match (public key in ESP32 = private key on GitHub)
+- Don't modify the encrypted firmware file
+- Regenerate keys if corrupted
+
+### Download Timeout
+
+```
+[OTA] Download failed!
+```
+
+**Solutions:**
+- Check internet connection
+- Verify GitHub URLs are correct
+- Check firewall settings
+
+### Build Failed on GitHub Actions
+
+Check the Actions tab on GitHub for error details:
+- Missing libraries → Add to workflow
+- Syntax error → Fix code in `user_code.h`
+- Memory overflow → Reduce code size
+
+---
 
 ## 📊 Technical Specifications
 
-- **Target Hardware**: ESP32 (4MB+ flash recommended)
-- **Encryption**: AES-256-CBC with 32-byte key and 16-byte IV
-- **Firmware Size**: Typically 200-500KB encrypted
-- **Update Time**: ~10-30 seconds depending on WiFi speed
-- **Memory Usage**: Optimized for ESP32's limited RAM
-- **Power Requirements**: Stable power needed during update
+| Specification | Value |
+|---------------|-------|
+| Target MCU | ESP32 (Dual-core Xtensa LX6) |
+| Flash Size | 4MB minimum recommended |
+| Framework | Arduino |
+| ESP32 Core | 2.0.14 |
+| Encryption | AES-256-CBC |
+| Signature | RSA-2048 with SHA-256 |
+| Update Check | Every 60 seconds |
+| OTA Core | Core 0 (background) |
+| User App Core | Core 1 (main) |
+| WiFi | 2.4GHz 802.11 b/g/n |
+| Protocol | HTTPS (TLS 1.2+) |
 
-## 🔄 Update Process Diagram
+---
 
-```
-┌─────────┐          ┌──────────────┐          ┌─────────────────┐
-│  ESP32  │          │ GitHub       │          │ GitHub Actions  │
-│  Device │          │ Releases     │          │ (CI/CD)         │
-└────┬────┘          └───────┬──────┘          └────────┬────────┘
-     │                       │                          │
-     │                       │                          │ 1. Build firmware
-     │                       │                          │
-     │                       │                          │ 2. Encrypt firmware
-     │                       │                          │
-     │                       │ 3. Upload encrypted      │
-     │                       │    firmware & version    │
-     │                       │ ◄────────────────────────┘
-     │                       │
-     │ 4. Check version.txt  │
-     │ ─────────────────────►│
-     │                       │
-     │ 5. If newer version:  │
-     │    Download firmware  │
-     │ ─────────────────────►│
-     │                       │
-     │ 6. Decrypt & install  │
-     │                       │
-     │ 7. Reboot with new    │
-     │    firmware           │
-     │                       │
-```
+## 👤 Author
 
-## 🤝 Contributing
+**Mohamed Cherif**
+- GitHub: [@mohamedcherif-pixel](https://github.com/mohamedcherif-pixel)
+- Project: [Firmware](https://github.com/mohamedcherif-pixel/Firmware)
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## 📄 License
 
-## 📞 Contact
-
-Mohamed Cherif - [@mohamedcherif-pixel](https://github.com/mohamedcherif-pixel)
-
-Project Link: [https://github.com/mohamedcherif-pixel/Firmware](https://github.com/mohamedcherif-pixel/Firmware)
+MIT License - See LICENSE file for details.
