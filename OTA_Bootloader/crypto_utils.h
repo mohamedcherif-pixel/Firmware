@@ -40,9 +40,7 @@ bool aes_decrypt_stream_init(aes_stream_context_t* ctx, const uint8_t* key, cons
 bool aes_decrypt_stream_update(aes_stream_context_t* ctx, const uint8_t* ciphertext, 
                                size_t ciphertext_len, uint8_t* plaintext, size_t* plaintext_len);
 void aes_decrypt_stream_free(aes_stream_context_t* ctx);
-
 // SHA-256 hashing
 bool sha256_hash(const uint8_t* data, size_t data_len, uint8_t* hash);
 bool sha256_verify(const uint8_t* data, size_t data_len, const uint8_t* expected_hash);
-
 #endif // CRYPTO_UTILS_H

@@ -1,8 +1,3 @@
-/*
- * RSA Digital Signature Verification for ESP32
- * Verifies RSA-SHA256 signatures for firmware authenticity
- */
-
 #ifndef RSA_VERIFY_H
 #define RSA_VERIFY_H
 

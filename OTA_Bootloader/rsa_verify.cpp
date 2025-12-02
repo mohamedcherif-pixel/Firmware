@@ -1,7 +1,3 @@
-/*
- * RSA Digital Signature Verification Implementation
- */
-
 #include "rsa_verify.h"
 #include <HTTPClient.h>
 #include <WiFi.h>

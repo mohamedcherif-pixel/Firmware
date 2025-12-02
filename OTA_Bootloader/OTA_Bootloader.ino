@@ -1,5 +1,3 @@
-
-
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Update.h>
@@ -8,8 +6,6 @@
 #include <Preferences.h>
 #include "crypto_utils.h"
 #include "rsa_verify.h"
-
-// Rename user's setup() and loop() to avoid conflict with bootloader's
 #define setup user_setup
 #define loop user_loop
 #include "user_code.h"
@@ -35,7 +31,7 @@ const uint8_t aes_key[32] = {
 };
 
 #define BOOTLOADER_VERSION 2
-#define UPDATE_CHECK_INTERVAL_MS 60000
+#define UPDATE_CHECK_INTERVAL_MS 5000
 #define WIFI_TIMEOUT_MS 15000
 
 // ============================================================================
@@ -51,18 +47,13 @@ TaskHandle_t otaTaskHandle = NULL;
 SemaphoreHandle_t wifiMutex;
 volatile bool updateInProgress = false;
 
-// ============================================================================
 // THREAD-SAFE PRINTING
-// ============================================================================
-
 void otaPrint(const char* msg) {
     Serial.print(msg);
 }
-
 void otaPrintln(const char* msg) {
     Serial.println(msg);
 }
-
 void otaPrintf(const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -71,11 +62,7 @@ void otaPrintf(const char* format, ...) {
     Serial.print(buffer);
     va_end(args);
 }
-
-// ============================================================================
 // WIFI FUNCTIONS
-// ============================================================================
-
 void loadSettings() {
     preferences.begin("ota", false);
     wifi_ssid = preferences.getString("ssid", DEFAULT_WIFI_SSID);
@@ -83,14 +70,12 @@ void loadSettings() {
     stored_version = preferences.getInt("version", 0);
     preferences.end();
 }
-
 void saveVersion(int version) {
     preferences.begin("ota", false);
     preferences.putInt("version", version);
     preferences.end();
     stored_version = version;
 }
-
 bool connectWiFi() {
     if (xSemaphoreTake(wifiMutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
         return false;
@@ -121,11 +106,7 @@ bool connectWiFi() {
     xSemaphoreGive(wifiMutex);
     return connected;
 }
-
-// ============================================================================
 // VERSION CHECK
-// ============================================================================
-
 int getServerVersion() {
     HTTPClient http;
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -149,20 +130,12 @@ int getServerVersion() {
     http.end();
     return version;
 }
-
-// ============================================================================
 // SIGNATURE VERIFICATION
-// ============================================================================
-
 bool verifySignature() {
     if (!rsa_verify_init()) return false;
     return rsa_verify_firmware_from_url(FIRMWARE_URL, FIRMWARE_SIG_URL);
 }
-
-// ============================================================================
 // OTA UPDATE
-// ============================================================================
-
 bool downloadAndInstall() {
     updateInProgress = true;
     otaPrintln("[OTA] Downloading update...");
@@ -302,11 +275,7 @@ bool downloadAndInstall() {
     updateInProgress = false;
     return true;
 }
-
-// ============================================================================
 // BACKGROUND OTA TASK (Core 0)
-// ============================================================================
-
 void otaTask(void* parameter) {
     otaPrintln("[OTA] Background checker started");
     vTaskDelay(pdMS_TO_TICKS(5000));
@@ -349,11 +318,7 @@ void otaTask(void* parameter) {
         vTaskDelay(pdMS_TO_TICKS(UPDATE_CHECK_INTERVAL_MS));
     }
 }
-
-// ============================================================================
 // BOOTLOADER SETUP
-// ============================================================================
-
 void setup() {
     Serial.begin(115200);
     delay(1000);
@@ -386,11 +351,7 @@ void setup() {
     // Run USER's setup() function (renamed via macro)
     user_setup();
 }
-
-// ============================================================================
 // BOOTLOADER LOOP - Calls user's loop() (renamed via macro)
-// ============================================================================
-
 void loop() {
     user_loop();
 }
