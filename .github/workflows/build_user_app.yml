@@ -47,12 +47,19 @@ jobs:
     
     - name: Install TFT_eSPI library
       run: |
-        # THE NUCLEAR OPTION: Install directly into the ESP32 Core libraries folder
-        # This forces the compiler to treat it as a built-in library (like WiFi.h)
+        # THE NUCLEAR OPTION V2: Find the path dynamically
+        # Because the path might change slightly between runs
         
-        CORE_LIB_PATH="$HOME/.arduino15/packages/esp32/hardware/esp32/2.0.14/libraries"
+        # Find where WiFi.h is installed
+        WIFI_PATH=$(find $HOME/.arduino15 -name "WiFi.h" | head -n 1)
+        echo "Found WiFi.h at: $WIFI_PATH"
         
-        echo "Installing TFT_eSPI into: $CORE_LIB_PATH"
+        # Get the libraries directory (parent of WiFi directory)
+        # WiFi.h is in .../libraries/WiFi/src/WiFi.h
+        # We want .../libraries/
+        
+        CORE_LIB_PATH=$(dirname $(dirname $(dirname "$WIFI_PATH")))
+        echo "Detected Core Library Path: $CORE_LIB_PATH"
         
         cd "$CORE_LIB_PATH"
         git clone https://github.com/Bodmer/TFT_eSPI.git
