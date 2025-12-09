@@ -52,10 +52,9 @@ jobs:
 
     - name: Install TFT_eSPI library
       run: |
-        arduino-cli lib update-index
-        arduino-cli lib install "TFT_eSPI"
-        echo "=== Installed libraries ==="
-        arduino-cli lib list
+        mkdir -p $HOME/Arduino/libraries
+        cd $HOME/Arduino/libraries
+        git clone https://github.com/Bodmer/TFT_eSPI.git
 
     - name: Build OTA Bootloader with User Code
       run: |
