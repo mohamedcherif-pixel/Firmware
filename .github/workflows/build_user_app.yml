@@ -45,6 +45,11 @@ jobs:
     - name: Set up Arduino CLI
       uses: arduino/setup-arduino-cli@v1
     
+    - name: Install ESP32 core
+      run: |
+        arduino-cli core update-index
+        arduino-cli core install esp32:esp32@2.0.14
+
     - name: Install TFT_eSPI library
       run: |
         # THE NUCLEAR OPTION V2: Find the path dynamically
