@@ -1,6 +1,6 @@
-#define USER_APP_VERSION 33
+#define USER_APP_VERSION 34
 #include <TFT_eSPI.h>
-#include "myImage2.h"
+#include "myImage3.h"
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -16,7 +16,7 @@ void setup() {
 
   // Display the downloaded image
   tft.setSwapBytes(true); // Swap bytes for correct endianness
-  tft.pushImage(0, 0, 240, 240, myImage2);
+  tft.pushImage(0, 0, 240, 240, myImage3);
 }
 
 void loop() {}
