@@ -52,14 +52,14 @@ jobs:
 
     - name: Install TFT_eSPI library
       run: |
-        mkdir -p $HOME/Arduino/libraries
-        cd $HOME/Arduino/libraries
+        mkdir -p $GITHUB_WORKSPACE/libraries
+        cd $GITHUB_WORKSPACE/libraries
         git clone https://github.com/Bodmer/TFT_eSPI.git
 
     - name: Build OTA Bootloader with User Code
       run: |
         cd OTA_Bootloader
-        arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
+        arduino-cli compile --fqbn esp32:esp32:esp32 --libraries $GITHUB_WORKSPACE/libraries --output-dir ./build
         echo "=== Build output ==="
         find ./build -name "*.bin" -type f
     
