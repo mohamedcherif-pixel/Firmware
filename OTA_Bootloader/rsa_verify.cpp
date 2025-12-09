@@ -53,13 +53,27 @@ bool rsa_verify_firmware(const uint8_t* firmware_data, size_t firmware_len,
     mbedtls_sha256_finish(&sha256_ctx, hash);
     mbedtls_sha256_free(&sha256_ctx);
     
+    Serial.println("\n[RSA] ========================================");
+    Serial.println("[RSA] Verifying Firmware Signature...");
+    Serial.printf("[RSA] Firmware Size: %d bytes\n", firmware_len);
+    
+    Serial.print("[RSA] Calculated SHA-256 Hash: ");
+    for(int i=0; i<32; i++) Serial.printf("%02x", hash[i]);
+    Serial.println();
+    
+    Serial.print("[RSA] Signature (first 32 bytes): ");
+    for(int i=0; i<32 && i<signature_len; i++) Serial.printf("%02x", signature_data[i]);
+    Serial.println("...");
+    
     int ret = mbedtls_pk_verify(&pk_ctx, MBEDTLS_MD_SHA256, hash, 32, signature_data, signature_len);
     
     if (ret == 0) {
-        Serial.println("[RSA] ✓ Signature valid");
+        Serial.println("[RSA] ✓ Signature MATCH! Firmware is authentic.");
+        Serial.println("[RSA] ========================================\n");
         return true;
     } else {
-        Serial.printf("[RSA] ✗ Signature invalid: -0x%04x\n", -ret);
+        Serial.printf("[RSA] ✗ Signature MISMATCH! Error code: -0x%04x\n", -ret);
+        Serial.println("[RSA] ========================================\n");
         return false;
     }
 }

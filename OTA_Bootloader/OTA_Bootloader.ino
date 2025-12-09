@@ -174,6 +174,14 @@ bool downloadAndInstall() {
         updateInProgress = false;
         return false;
     }
+
+    otaPrintln("[SEC] ----------------------------------------");
+    otaPrintln("[SEC] Initializing AES-256-CBC Decryption");
+    otaPrintf("[SEC] IV: ");
+    for(int i=0; i<16; i++) Serial.printf("%02x", iv[i]);
+    Serial.println();
+    otaPrintln("[SEC] Key: ******************************** (Hidden)");
+    otaPrintln("[SEC] ----------------------------------------");
     
     size_t encrypted_size = contentLength - 16;
     
