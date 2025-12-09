@@ -45,6 +45,13 @@ jobs:
     - name: Set up Arduino CLI
       uses: arduino/setup-arduino-cli@v1
     
+    - name: Configure Arduino CLI
+      run: |
+        arduino-cli config init --overwrite
+        arduino-cli config set directories.user $HOME/Arduino
+        arduino-cli config set directories.data $HOME/.arduino15
+        arduino-cli config dump
+
     - name: Install ESP32 core
       run: |
         arduino-cli core update-index
@@ -52,20 +59,27 @@ jobs:
 
     - name: Install TFT_eSPI library
       run: |
-        # Create a local custom library directory
-        mkdir -p $GITHUB_WORKSPACE/custom_libs
-        cd $GITHUB_WORKSPACE/custom_libs
+        # Create the user libraries directory we just configured
+        mkdir -p $HOME/Arduino/libraries
+        cd $HOME/Arduino/libraries
+        
+        # Clone the library
         git clone https://github.com/Bodmer/TFT_eSPI.git
-        # Copy the custom User_Setup.h from the project to the library
-        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h $GITHUB_WORKSPACE/custom_libs/TFT_eSPI/User_Setup.h
-        # Verify installation
-        ls -R $GITHUB_WORKSPACE/custom_libs
+        
+        # Copy the custom User_Setup.h
+        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h
+        
+        # DEBUG: Verify the file exists and show where it is
+        echo "=== LIBRARY VERIFICATION ==="
+        ls -la $HOME/Arduino/libraries/TFT_eSPI/TFT_eSPI.h
+        ls -la $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h
+        echo "============================"
 
     - name: Build OTA Bootloader with User Code
       run: |
         cd OTA_Bootloader
-        # Explicitly point to the custom library directory
-        arduino-cli compile --fqbn esp32:esp32:esp32 --libraries "$GITHUB_WORKSPACE/custom_libs" --output-dir ./build
+        # Compile (it will now look in $HOME/Arduino/libraries automatically)
+        arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
         echo "=== Build output ==="
         find ./build -name "*.bin" -type f
     
