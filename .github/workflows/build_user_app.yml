@@ -52,28 +52,25 @@ jobs:
 
     - name: Install TFT_eSPI library
       run: |
-        # THE NUCLEAR OPTION V2: Find the path dynamically
-        # Because the path might change slightly between runs
+        # 1. Create the standard User Library directory
+        mkdir -p $HOME/Arduino/libraries
+        cd $HOME/Arduino/libraries
         
-        # Find where WiFi.h is installed
-        WIFI_PATH=$(find $HOME/.arduino15 -name "WiFi.h" | head -n 1)
-        echo "Found WiFi.h at: $WIFI_PATH"
-        
-        # Get the libraries directory (parent of WiFi directory)
-        # WiFi.h is in .../libraries/WiFi/src/WiFi.h
-        # We want .../libraries/
-        
-        CORE_LIB_PATH=$(dirname $(dirname $(dirname "$WIFI_PATH")))
-        echo "Detected Core Library Path: $CORE_LIB_PATH"
-        
-        cd "$CORE_LIB_PATH"
+        # 2. Clone the library here (Standard location)
+        echo "Cloning TFT_eSPI to standard library path..."
         git clone https://github.com/Bodmer/TFT_eSPI.git
         
-        # Copy the custom User_Setup.h
-        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h "$CORE_LIB_PATH/TFT_eSPI/User_Setup.h"
+        # 3. Copy your custom User_Setup.h
+        echo "Injecting custom configuration..."
+        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h TFT_eSPI/User_Setup.h
         
-        # Verify existence
-        ls -la "$CORE_LIB_PATH/TFT_eSPI/TFT_eSPI.h"
+        # 4. Verify installation
+        if [ -f "TFT_eSPI/TFT_eSPI.h" ]; then
+            echo "✅ Library installed successfully at $(pwd)/TFT_eSPI"
+        else
+            echo "❌ Library install failed"
+            exit 1
+        fi
 
     - name: Build OTA Bootloader with User Code
       run: |
