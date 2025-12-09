@@ -1,4 +1,4 @@
-#define USER_APP_VERSION 23
+#define USER_APP_VERSION 24
 #include <TFT_eSPI.h>
 #include "myImage.h"
 
