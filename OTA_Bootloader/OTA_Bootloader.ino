@@ -354,10 +354,8 @@ void setup() {
         saveVersion(USER_APP_VERSION);
     }
     
-    // Connect WiFi
-    connectWiFi();
-    
     // Start OTA task on Core 0 (background)
+    // WiFi connection will be handled inside this task to avoid blocking user code
     xTaskCreatePinnedToCore(otaTask, "OTA", 8192, NULL, 1, &otaTaskHandle, 0);
     
     Serial.println("[BOOT] Starting user application...\n");
