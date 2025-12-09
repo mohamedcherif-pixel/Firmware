@@ -52,16 +52,20 @@ jobs:
 
     - name: Install TFT_eSPI library
       run: |
-        mkdir -p $HOME/Arduino/libraries
-        cd $HOME/Arduino/libraries
+        # Create a local custom library directory
+        mkdir -p $GITHUB_WORKSPACE/custom_libs
+        cd $GITHUB_WORKSPACE/custom_libs
         git clone https://github.com/Bodmer/TFT_eSPI.git
         # Copy the custom User_Setup.h from the project to the library
-        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h $HOME/Arduino/libraries/TFT_eSPI/User_Setup.h
+        cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h $GITHUB_WORKSPACE/custom_libs/TFT_eSPI/User_Setup.h
+        # Verify installation
+        ls -R $GITHUB_WORKSPACE/custom_libs
 
     - name: Build OTA Bootloader with User Code
       run: |
         cd OTA_Bootloader
-        arduino-cli compile --fqbn esp32:esp32:esp32 --output-dir ./build
+        # Explicitly point to the custom library directory
+        arduino-cli compile --fqbn esp32:esp32:esp32 --libraries "$GITHUB_WORKSPACE/custom_libs" --output-dir ./build
         echo "=== Build output ==="
         find ./build -name "*.bin" -type f
     
