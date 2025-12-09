@@ -47,11 +47,15 @@ jobs:
     
     - name: Install ESP32 core
       run: |
+        arduino-cli core update-index
         arduino-cli core install esp32:esp32@2.0.14
 
     - name: Install TFT_eSPI library
       run: |
+        arduino-cli lib update-index
         arduino-cli lib install "TFT_eSPI"
+        echo "=== Installed libraries ==="
+        arduino-cli lib list
 
     - name: Build OTA Bootloader with User Code
       run: |
