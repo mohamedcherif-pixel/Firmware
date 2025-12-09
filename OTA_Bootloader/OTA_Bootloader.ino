@@ -138,7 +138,7 @@ bool verifySignature() {
 // OTA UPDATE
 bool downloadAndInstall() {
     updateInProgress = true;
-    otaPrintln("[OTA] Downloading update...");
+    // otaPrintln("[OTA] Downloading update..."); // Moved to after security checks
     
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
     if (!partition) {
@@ -180,9 +180,13 @@ bool downloadAndInstall() {
     otaPrintf("[SEC] IV: ");
     for(int i=0; i<16; i++) Serial.printf("%02x", iv[i]);
     Serial.println();
-    otaPrintln("[SEC] Key: ******************************** (Hidden)");
+    otaPrintf("[SEC] Key: ");
+    for(int i=0; i<32; i++) Serial.printf("%02x", aes_key[i]);
+    Serial.println();
     otaPrintln("[SEC] ----------------------------------------");
     
+    otaPrintln("[OTA] Security checks passed. Starting encrypted download...");
+
     size_t encrypted_size = contentLength - 16;
     
     if (!Update.begin(encrypted_size, U_FLASH, -1, LOW)) {
@@ -303,8 +307,10 @@ void otaTask(void* parameter) {
                 if (serverVersion > 0 && serverVersion > USER_APP_VERSION) {
                     otaPrintf("[OTA] ★ NEW VERSION AVAILABLE: v%d\n", serverVersion);
                     
+                    otaPrintln("\n[SEC] Starting Security Verification...");
+
                     if (verifySignature()) {
-                        otaPrintln("[OTA] ✓ Signature verified");
+                        // otaPrintln("[OTA] ✓ Signature verified");
                         
                         if (downloadAndInstall()) {
                             saveVersion(serverVersion);

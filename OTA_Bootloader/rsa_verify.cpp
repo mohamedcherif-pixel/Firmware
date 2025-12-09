@@ -57,13 +57,23 @@ bool rsa_verify_firmware(const uint8_t* firmware_data, size_t firmware_len,
     Serial.println("[RSA] Verifying Firmware Signature...");
     Serial.printf("[RSA] Firmware Size: %d bytes\n", firmware_len);
     
+    Serial.println("[RSA] Public Key (Embedded):");
+    for(int i=0; i<rsa_public_key_len; i++) {
+        Serial.printf("%02x", rsa_public_key[i]);
+        if ((i+1) % 32 == 0) Serial.println();
+    }
+    Serial.println();
+
     Serial.print("[RSA] Calculated SHA-256 Hash: ");
     for(int i=0; i<32; i++) Serial.printf("%02x", hash[i]);
     Serial.println();
     
-    Serial.print("[RSA] Signature (first 32 bytes): ");
-    for(int i=0; i<32 && i<signature_len; i++) Serial.printf("%02x", signature_data[i]);
-    Serial.println("...");
+    Serial.println("[RSA] Signature (Full):");
+    for(int i=0; i<signature_len; i++) {
+        Serial.printf("%02x", signature_data[i]);
+        if ((i+1) % 32 == 0) Serial.println();
+    }
+    Serial.println();
     
     int ret = mbedtls_pk_verify(&pk_ctx, MBEDTLS_MD_SHA256, hash, 32, signature_data, signature_len);
     
