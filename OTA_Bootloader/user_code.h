@@ -16,7 +16,7 @@ void setup() {
 
   // Display the downloaded image
   tft.setSwapBytes(true); // Swap bytes for correct endianness
-  tft.pushImage(0, 0, 240, 240, myImage);
+  tft.pushImage(0, 0, 240, 240, myImage2);
 }
 
 void loop() {}
