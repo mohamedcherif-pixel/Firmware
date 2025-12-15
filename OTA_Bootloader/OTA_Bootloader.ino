@@ -6,6 +6,7 @@
 #include <Preferences.h>
 #include "crypto_utils.h"
 #include "rsa_verify.h"
+#include "oled_serial.h"
 #define setup user_setup
 #define loop user_loop
 #include "user_code.h"
@@ -16,8 +17,8 @@
 // CONFIGURATION - DO NOT MODIFY BELOW THIS LINE
 // ============================================================================
 
-const char* DEFAULT_WIFI_SSID = "iPhone";
-const char* DEFAULT_WIFI_PASSWORD = "zied20244";
+const char* DEFAULT_WIFI_SSID = "TOPNET_2FB0";
+const char* DEFAULT_WIFI_PASSWORD = "3m3smnb68l";
 
 const char* FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin";
 const char* FIRMWARE_SIG_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin.sig";
@@ -47,19 +48,19 @@ TaskHandle_t otaTaskHandle = NULL;
 SemaphoreHandle_t wifiMutex;
 volatile bool updateInProgress = false;
 
-// THREAD-SAFE PRINTING
+// THREAD-SAFE PRINTING (Now goes to OLED too!)
 void otaPrint(const char* msg) {
-    Serial.print(msg);
+    OLED_LOG(msg);
 }
 void otaPrintln(const char* msg) {
-    Serial.println(msg);
+    OLED_LOGLN(msg);
 }
 void otaPrintf(const char* format, ...) {
     va_list args;
     va_start(args, format);
     char buffer[256];
     vsnprintf(buffer, sizeof(buffer), format, args);
-    Serial.print(buffer);
+    OLED_LOG(buffer);
     va_end(args);
 }
 // WIFI FUNCTIONS
@@ -335,13 +336,14 @@ void otaTask(void* parameter) {
 // BOOTLOADER SETUP
 void setup() {
     Serial.begin(115200);
-    delay(1000);
+    delay(500);
     
-    Serial.println("\n");
-    Serial.println("╔═══════════════════════════════════════════════════════════╗");
-    Serial.println("║     ESP32 OTA SYSTEM v" + String(BOOTLOADER_VERSION) + " + USER APP v" + String(USER_APP_VERSION) + "                 ║");
-    Serial.println("╚═══════════════════════════════════════════════════════════╝");
-    Serial.println();
+    // Initialize OLED first so it can show all messages
+    oled_init();
+    
+    OLED_LOGLN("OTA v" + String(BOOTLOADER_VERSION));
+    OLED_LOGLN("v" + String(USER_APP_VERSION));
+    OLED_LOGLN("---");
     
     // Initialize OTA system
     crypto_init();
@@ -358,7 +360,7 @@ void setup() {
     // WiFi connection will be handled inside this task to avoid blocking user code
     xTaskCreatePinnedToCore(otaTask, "OTA", 8192, NULL, 1, &otaTaskHandle, 0);
     
-    Serial.println("[BOOT] Starting user application...\n");
+    OLED_LOGLN("Boot OK");
     
     // Run USER's setup() function (renamed via macro)
     user_setup();

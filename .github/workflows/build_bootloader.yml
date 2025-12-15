@@ -28,27 +28,21 @@ jobs:
       run: |
         arduino-cli core install esp32:esp32@2.0.14
 
-    - name: Install TFT_eSPI library
+    - name: Install libraries
       run: |
-        # 1. Create the standard User Library directory
         mkdir -p $HOME/Arduino/libraries
         cd $HOME/Arduino/libraries
         
-        # 2. Clone the library here (Standard location)
-        echo "Cloning TFT_eSPI to standard library path..."
+        # TFT_eSPI
         git clone https://github.com/Bodmer/TFT_eSPI.git
-        
-        # 3. Copy your custom User_Setup.h
-        echo "Injecting custom configuration..."
         cp $GITHUB_WORKSPACE/OTA_Bootloader/User_Setup.h TFT_eSPI/User_Setup.h
         
-        # 4. Verify installation
-        if [ -f "TFT_eSPI/TFT_eSPI.h" ]; then
-            echo "✅ Library installed successfully at $(pwd)/TFT_eSPI"
-        else
-            echo "❌ Library install failed"
-            exit 1
-        fi
+        # Adafruit libraries for OLED
+        git clone https://github.com/adafruit/Adafruit-GFX-Library.git Adafruit_GFX
+        git clone https://github.com/adafruit/Adafruit_SH110x.git
+        git clone https://github.com/adafruit/Adafruit_BusIO.git
+        
+        echo "✅ All libraries installed"
     
     - name: Build OTA Bootloader
       run: |
