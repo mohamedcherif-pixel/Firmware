@@ -17,8 +17,8 @@
 // CONFIGURATION - DO NOT MODIFY BELOW THIS LINE
 // ============================================================================
 
-const char* DEFAULT_WIFI_SSID = "TOPNET_2FB0";
-const char* DEFAULT_WIFI_PASSWORD = "3m3smnb68l";
+const char* DEFAULT_WIFI_SSID = "iPhone";
+const char* DEFAULT_WIFI_PASSWORD = "yasmine1234";
 
 const char* FIRMWARE_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin";
 const char* FIRMWARE_SIG_URL = "https://github.com/mohamedcherif-pixel/Firmware/releases/latest/download/user_app_encrypted.bin.sig";
