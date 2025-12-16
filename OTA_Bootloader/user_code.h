@@ -1,4 +1,4 @@
-#define USER_APP_VERSION 40
+#define USER_APP_VERSION 41
 
 // User code - OLED displays all Serial output automatically!
 
